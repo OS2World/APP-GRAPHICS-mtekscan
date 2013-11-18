@@ -1,0 +1,57 @@
+Version history:
+
+v0.1 (10OCT1996)
+
+  Initial release.
+
+v0.2 (14APR1997)
+
+  - Added 3-pass color scanning support!
+
+  - Added retry loop to stop_scan() function, controlled by 
+    MAX_WAIT_RETURN_RETRY and WAIT_RETURN_SLEEP_TIME (this is necessary
+    for some (3-pass) scanner models that do not accept a STOP SCAN before
+    the scan head returned to starting position between scanning passes,
+    e.g. the ScanMaker II)
+
+  - Improved error handling (catch SIGSEGV, check for linewidth <= 0).
+
+  - Added option to disable vendor-ID check -- some non-MicroTek scanners
+    (obviously) and the E3 need this, 'cause they don't report the vendor-ID
+    as 'MICROTEK'.
+
+  - Specifying a frame y-coordinate larger than the selected paper length
+    is no longer possible. A negative paper length value selects the
+    maximum document length as the paper length.
+
+  - Images are written faster (replaced fprintf with fputc/fwrite)
+
+  - Better error checking of commandline options
+
+  - scsi_debug_level can now be set with SCSI_DEBUGLEVEL value in
+    config.h, DEBUG option added for higher level functions
+
+  - changed type of inquiry buffer in options.c (get_scanner_info())
+    from char to unsigned char to avoid conversion problems
+    (document size code of ScanMaker 35t was not recognized)
+
+  - Added gamma table downloading and gamma correction (using gamma tables,
+    commanline option '-G')
+
+  - Added option to read gamma table(s) from file ('-T')
+    (Note: gamma tables have not been tested with sizes > 256 entries;
+    the E6 does not support larger tables)
+
+  - Added compile time option to invert scanned image using gamma
+    tables instead of the scanner´s built-in negative scanning option
+
+  - Added scanner selftest function (commandline option '-S')
+
+  - Added MODE SENSE 1 command; digital brightness adjustment can
+    now be specified separately for red/green/blue channels using
+    this function (at least that´s how it should work; the E6 seems
+    to ignore these settings....)
+
+  - Fixed a bug in the code that determines the scsi buffer size
+
+  - Wrote a manpage

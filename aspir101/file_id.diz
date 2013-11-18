@@ -1,0 +1,10 @@
+ASPI Router Version 1.01
+
+is a small device driver that lets
+you access the SCSI bus from your
+application.
+
+--
+Daniel Dorau
+woodst@cs.tu-berlin.de
+

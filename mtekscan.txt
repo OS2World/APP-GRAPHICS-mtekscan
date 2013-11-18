@@ -1,0 +1,333 @@
+
+
+
+mtekscan(1)              mtekscan manual              mtekscan(1)
+
+
+NAME
+       mtekscan - driver for MicroTek SCSI scanners
+
+SYNOPSIS
+       mtekscan <SCSI ID of scanner> [options]
+
+
+DESCRIPTION
+       mtekscan  is a driver that allows the use of MicroTek SCSI
+       scanners with Linux.  It is a command  line  utility  that
+       scans an image and writes the data to stdout or to a spec-
+       ified  file.   Originally  developed  for  use  with   the
+       MicroTek  ScanMaker  E6,  it  is  known to work with other
+       MicoTek SCSI scanners as well. So far, it  has  been  suc-
+       cessfully tested with a ScanMaker II, ScanMaker III, Scan-
+       Maker E3, ScanMaker 35t+, and ScanMaker  E6,  as  well  as
+       with an Adara ImageStar I, Genius ColorPage-SP2 and a Pri-
+       max DeskScan Color.
+
+
+OPTIONS
+       All options and arguments have to be separated by  spaces;
+       combining options like '-cpVt' is not allowed. If mutually
+       exclusive options are specified on the same  command  line
+       (like  '-c  -g')  the  last option overrides previous ones
+       (unless explicitly stated otherwise, as for the -T and  -G
+       options,  see below).  Note that some of the options might
+       not be available, depending on the scanner model used.
+
+       <SCSI ID of scanner>
+              This is required for the OS/2 version, and must
+              have your scanner's ID #; i.e. 6.
+
+       -o <file>
+              If this is specified, mtekscan writes  it's  output
+              to <file> , instead of stdout.
+
+
+       -f <x1> <y1> <x2> <y2>
+              Sets the scanning frame to the rectangle defined by
+              the upper left corner <x1>,<y1> and the lower right
+              corner  <x2>,<y2>.  The coordinates are measured in
+              inch; the origin is at the top left corner  of  the
+              scanning area.
+
+
+       -r <resolution>
+              Sets  the  scanning  resolution  (in  dpi).  As the
+              MicroTek scanners only accept  resolution  settings
+              in  1% or 5% steps of the maximum, the closest pos-
+              sible value is selected.
+
+
+       -b     Selects line art (black and white) scanning.
+
+
+       -a     Selects halftone scanning. The document is dithered
+
+
+
+ffwd                        13 Apr 97                           1
+
+
+
+
+
+mtekscan(1)              mtekscan manual              mtekscan(1)
+
+
+              using  a  halftoning  pattern  that can be selected
+              with the -H option.
+
+
+       -g     Selects grayscale scanning.
+
+
+       -c     Selects color scanning.
+
+
+       -s <n> Sets the shadow adjustment value (black  level)  to
+              <n>,  where  <n> is a decimal value in the range of
+              0..255. All pixel values less than or equal to this
+              value  are  set  to 0, and the remaining values are
+              mapped into the range of 0 through 255.
+
+              This option only works in multi-bit scanning  modes
+              (color or grayscale).  The default value is 0.
+
+
+       -l <n> Sets  the  highlight adjustment value (white level)
+              to <n>, where <n> is a decimal value in  the  range
+              of  0..255.  All pixel values greater than or equal
+              to this value are set to  255,  and  the  remaining
+              values  are mapped into the range of 0 through 255.
+
+              This option only works in multi-bit scanning  modes
+              (color or grayscale).  The default value is 255.
+
+
+       -m <n> Sets the midtone adjustment value to <n>, where <n>
+              is a decimal value in  the  range  of  0..255.  All
+              pixel values larger than or equal to <n> are mapped
+              into the range of 128 through 255, and  all  values
+              less  than  <n>  are  mapped  into  the  range of 0
+              through 127.
+
+              This option only works in multi-bit scanning  modes
+              (color or grayscale).  The default value is 128.
+
+
+       -d <n> [ <n> <n> ]
+              Selects  a  digital  brightness adjustment value of
+              <n>, where <n> is a decimal value in the  range  of
+              -100..100.  If  just  one  value is specified after
+              this option, it determines the overall  brightness.
+              If  three  values are specified, they determine the
+              red, green, and blue channel brightness  adjustment
+              individually.
+
+              The default value is 0.
+
+
+       -e <n> Sets   the   exposure   time   adjustment   (analog
+
+
+
+ffwd                        13 Apr 97                           2
+
+
+
+
+
+mtekscan(1)              mtekscan manual              mtekscan(1)
+
+
+              brightness adjustment) to <n>, where <n> is a deci-
+              mal  value  usually  in  the range of -18..21 (some
+              scanner models may accept higher values). Note that
+              this  value  must be a multiple of 3, otherwise the
+              closest possible value is selected.
+
+              The default value is 0.
+
+
+       -k <n> Sets the contrast adjustment to <n>, where <n> is a
+              decimal value usually in the range of -42..49 (some
+              scanner models may accept higher values). Note that
+              this  value  must be a multiple of 7, otherwise the
+              closest possible value is selected.
+
+              The default value is 0.
+
+
+       -G <n> [ <n> <n> ]
+              Sets the gamma correction to <n>.  Specifying  just
+              one  value  after  the  -G selects an overall gamma
+              correction value; if  three  values  are  specified
+              they select red, green and blue channel gamma indi-
+              vidually.
+
+              The default value is 1.0 for all three channels.
+
+
+       -T <file>
+              Loads the gamma correction  table(s)  from  <file>.
+              If  this  is specified, it overrides any gamma set-
+              tings specified with the -G option, even if the  -T
+              option  is  specified  before the -G on the command
+              line.
+
+              The default is not to load correction tables from a
+              file.
+
+
+       -t     Selects  transparency  scanning  if  a transparency
+              illuminator is installed.
+
+
+       -n     Selects negative scanning (reverse colors).
+
+
+       -H <n> Selects the built-in halftoning pattern <n>,  where
+              <n>  is  a decimal value in the range of 0..11. The
+              halftoning  pattern  defines  how  the   image   is
+              dithered when scanning halftone images (option -a).
+
+
+       -p     Enables prescan mode, resulting in faster but  less
+              accurate scans.
+
+
+
+ffwd                        13 Apr 97                           3
+
+
+
+
+
+mtekscan(1)              mtekscan manual              mtekscan(1)
+
+
+       -v <n> Sets  the  scanning velocity to <n>, where <n> is a
+              decimal value in the range of 1..7  (higher  values
+              resulting  in  longer scan times). Setting a higher
+              value can result in better quality if segment scan-
+              ning is necessary (see option -B below).
+
+              The default value is 1 (fastest).
+
+
+       -B     Disables backtracking between scanning segments. If
+              the transfer buffer of the generic SCSI  driver  is
+              too  small,  the  scan process will be divided into
+              several steps, or segments. Usually, the scan  head
+              will  move  a bit backwards before beginning with a
+              new segment. This can  be  disabled  by  specifying
+              this  switch, resulting in faster but less accurate
+              scans.
+
+
+       -C     Disables the recalibration at the start of a  scan.
+              This  results  in  much  shorter scanning times but
+              less quality.
+
+              Note that specifying this option causes a SCSI  bus
+              lock-up  if the scanner did not calibrate itself at
+              least once (e.g. if the scanner was  just  switched
+              on).  At  least one scan must be made with calibra-
+              tion enabled before this option can be used.
+
+
+       -P     Same as '-p -C' (see above).
+
+
+       -V     Verbose mode. Scanner settings and progress  infor-
+              mation is written to stderr.
+
+
+       -i     Shows  options  supported  by  the scanner in short
+              format. The first values are the  maximum  document
+              size and resolution, and the number of contrast and
+              exposure time values accepted, followed by  a  list
+              of  option  letters  supported by the scanner. This
+              information is intended for use  with  a  graphical
+              scanning frontend.
+
+
+       -I     Shows internal scanner data in long, human-readable
+              format.
+
+
+       -S     Perform a self-test of  the  scanner  hardware  and
+              exit.
+
+
+
+
+
+ffwd                        13 Apr 97                           4
+
+
+
+
+
+mtekscan(1)              mtekscan manual              mtekscan(1)
+
+
+       -h     Displays a list of command line options accepted by
+              mtekscan.
+
+
+BUGS
+       mtekscan can cause kernel panics, system crashes, SCSI bus
+       lock-ups  and various other nasty things. Really.  Select-
+       ing a negative brightness value with the  -d  option  pro-
+       duces  strange (and definitely wrong) results, at least on
+       a ScanMaker E6. Specifying different brightness adjustment
+       values for the red, green, and blue channels does not have
+       the desired effect but just affects the overall brightness
+       (again,  at  least on an E6). And probably there's a thou-
+       sand more.
+
+
+AUTHOR
+       mtekscan is Copyright (C) 1996, 1997 by Jan  Schoenepauck,
+       <schoenep@uni-wuppertal.de>.   Some  Parts  of the program
+       were taken from the muscan driver for Mustek  scanners  by
+       Torsten  Eichner  <eichner@rhrk.uni-kl.de>.   The code for
+       the three-pass scanner support is heavily based on a patch
+       by Warwick Allison <warwick@cs.uq.edu.au>.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ffwd                        13 Apr 97                           5
+
+

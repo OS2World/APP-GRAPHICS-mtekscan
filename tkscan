@@ -1,0 +1,2229 @@
+#!/bin/sh
+# the next line restarts using wish \
+exec wish "$0" "$@"
+
+# TkScan Version and Date
+set c(version)     "0.8"
+set c(date)        "May 1997"
+
+#----------------------------------------------------------------
+# About TkScan
+#----------------------------------------------------------------
+set about_tkscan "
+TkScan
+Version $c(version), $c(date)\n
+A tcl/tk GUI for command-line scanner driver
+Written by Hang-Bae Kim (hbkim@delta.ft.uam.es)
+Copying policy : GNU Public License
+"
+
+#----------------------------------------------------------------
+# README
+#----------------------------------------------------------------
+set readme_tkscan "
+   TkScan version $c(version)
+   A tcl/tk GUI for command-line scanner driver
+   Copyright (C) 1997 Hang Bae Kim (hbkim@delta.ft.uam.es)
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation; either version 2 of
+   the License, or (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+   See the GNU General Public License for more details.
+
+ TkScan is a tcl/tk GUI for command-line scanner driver.
+ I have written it for my own use with my Mustek 800IISP scanner.
+ But I put it in the public with the hope that it may be helpful to someone.
+ Remember that scanning itself is done by the scanner driver not by this
+ GUI.  Therefore you NEED the appropriate command-line scanner driver for
+ your scanner. TkScan just does the scanning area selection on a previewed
+ image, the choice of options, e.g. scanning mode, resolution and some
+ enhancements like gamma correction, running scanner driver and sending the
+ output where you want.  You can fit it to your scanner and driver without
+ much difficulty, by modifying `scanner_driver'.tcl referring your driver
+ manual.
+
+ Currently it supports
+    * Epson SCSI scanner via `ep_scan'
+    * HP SCSI scanner via `hpscanpbm'
+    * Microtek SCSI scanner via `mtekscan'
+    * Mustek Flatbed scanner via `scanimage'(SANE) or `mscan'
+
+    - I wrote `epson-ep_scan.tcl' `hp-hpscanpbm.tcl' `microtek-mtekscan.tcl'
+      just referring manuals, without testing.  They can be considered as
+      scratch.  So they may not work, or even may include simple typos.
+      I hope you can cope with this situation. If you write a correctly
+      working script, please send a copy to me.
+    - I give thanks to Boris Tobotras(tobotras@jet.msk.su) for sending
+      the patch for hpscanpbm.
+
+ With TkScan you can
+    * preview an image to be scanned on a small canvas whose size and
+      mode you can select
+    * adjust scanning mode and resolutions and other options
+      supported by the scanner and driver with mouse clicks
+    * select the one or more scanning areas on a previewed image canvas
+      If you select several scanning areas, TkScan will scan them successively.
+      TkScan shows the expected screen pixel sizes and raw data sizes of the
+      images as well as its real size in several length units (mm,cm,pt,inch).
+    * make the output raw data directly go where you want:
+        - to image editor (XV, ImageMagic or GIMP),
+        - to file in the format you want,
+        - to printer or to ghostscript(ghostview or gv) in postscript format
+          with the size and position adjustment,
+        - to fax modem to be directly sent as a fax,
+        - to the ocr software to be processed by ocr
+          (_not_ implemented yet in this version).
+    * see the progress of scanning both in graphic and numeric percentage
+      and file size fraction.
+    * interrupt scanning with the Stop button.
+    * configure TkScan to fit it to your tastes.
+    
+ TkScan requires
+    * Scanner and command-line driver listed above, or you can add your own.
+    * Tcl/Tk, probably most versions will work.
+    * ImageMagic, to convert the scanned image to various formats
+    * XV, ImageMagic, or GIMP or all of them, for ImageEditor
+    * Ghostscript and ghostview(or gv), to view the postscript output
+    * Efax, to send the scanned image to a fax modem
+
+    - I left the output to OCR blank, Because I could not find a good
+      OCR software for Linux.  Does anyone know about it?
+    - All the above binaries should lie in your PATH.
+
+ How to use
+    See Guide in the Help menu.
+
+ Bug or Comment to
+    Hang-Bae Kim, hbkim@delta.ft.uam.es
+"
+
+#----------------------------------------------------------------
+# Usage of TkScan
+#----------------------------------------------------------------
+set usage_tkscan "
+ How to use TkScan version $c(version)
+
+ Contents
+
+	0. Command line option
+	1. Previewing
+	2. Selection of regions to be scanned
+	3. Selection of mode and resolution
+	4. Selection of output destination
+	5. Scanning
+	6. Configuration
+
+
+ Section 0. Command line option
+
+   tkscan \[-geometry +x+y\] \[ImageEditor|File|Printer|Fax|OCR\]
+
+
+ Section 1. Preview
+
+ * Click \[Preview\] button to initiate preview scanning.
+ * Preview scanning can be interrupted by clicking \[Stop\] button.
+ * The preview mode and resolution can be chosen in Preference of File menu.
+
+
+ Section 2. Selection of regions to be scanned
+
+ * The selection of scanning regions on the preview image is done with
+   left mouse button. Press left button at one corner of the rectangle you
+   want to scan, move mouse while pressing it and release at the other corner.
+ * You can finetune the region using finetuning buttons around blue rectangle.
+ * The blue rectagle continuously shows a region to be scanned, while the
+   scanning region window diplays coordinates of upper-left and lower-right
+   coners, the width times height in the length unit chosen (Real Size) and
+   in screen pixel (Screen Size), and the file size of the image in raw
+   format (Data Size).  Screen Size and Data Size also vary as you change
+   scanning mode and resolution.
+ * The size of A4, Letter paper or others are preset in \[preset\] button.  You
+   can add your own regions in configuration file (See Configuration section).
+ * You can select several regions on the preview image canvas.
+   Set one blue rectangle and click the middle mouse button inside it (or
+   \[Regist\] button).  Blue rectangle becomes red and the number 1 appears
+   at the center.  Then make another blue rectangle and press the middle
+   button inside it.  Now the second red rectangle is registered.  Repeat
+   this as many times as you want.  Click of the right mouse button inside
+   the red rectangle will remove it.  Double click of the right button (or
+   click of the \[Clear\] button) deletes all rectangles.  TkScan will scan
+   red rectangles successively in order of their registration numbers.
+
+
+ Section 3. Selection of mode, resolution and options
+
+ This is transparent: Use mode \[Mode\] menubutton and \[Resolution\] scale.
+ Screen Size and Data Size change accordingly as mode and resolution change.
+ * If you want to adjust other options, press \[Open Manager\] button.  Then
+   Option manager window appears and you can do it there.  Available options
+   depend on the scanning mode.
+ * Several frequently used mode are preset in Mode munu.  You can define your
+   own quick_mode in configuration file (See Configuration section.)
+
+
+ Section 4. Selection of output desination
+
+ This is done by \[Output to\] menubutton.
+
+ * Image Editor
+   - You can select image editor among XV, ImageMagic and GIMP in Preference.
+   - There is also \[SW\] checkbutton, which select that each scanned image
+     appears in separate image editor or all images in one image editor
+     when several red rectangles are scanned successively.
+
+ * File
+   If you select this, File Manager Window appears.
+   - Select the output file format.
+   - You can specify a filename for scanned image in \[Filename\] entry.
+     If you use # in the filename, the last # is replaced with the retangle
+     number(0 for blue rectangle, the number at the center for red rectangles).
+     The default filename is scanout-#.surfix where appropriate surfix is
+     attached for the file format. You can change it in the configuration file.
+
+ * Printer
+   If you select this, Print Manager Window appears.
+   - Select a printer.  `gv' is for sending output to ghostview(or gv).
+   - Use \[Zoom\] scale and \[Position\] menubutton to select the size and
+     position of printed image. Zoom scale is percentage of Real Size.
+   - \[Reprint\] button is for printing again the scanned image with changed
+     zoom and position.
+
+ * Fax
+   If you select this, Fax Manager Window appears.
+   - With this, each scanned page is converted tiffg3 format using efix and
+     listed in Page List Box.
+   - In Page List Box, you can
+      + view each page converted to tiffg3 format by double click of
+        left mouse button,
+      + view whole pages by pressing \[View\] button,
+      + rearrange the order of pages using \[Up\] and \[Down\] button,
+      + remove a page from the list using \[Remove\] button,
+      + \[Attach\] button does not work yet.
+   - You should specify the fax number.  \[List\] calls Fax Number List Window,
+     in which you can maintain frequently used fax numbers.
+
+ * OCR
+   - This is not implemented yet. I could not find a good OCR software running
+     under Linux. Please let me know if anyone knows or heard of it.
+
+
+ Section 5. Scanning
+
+ This is done by pressing \[SCAN\] button. TkScan will scan the blue rectangle
+ region. If you registered red rectangles, then red rectangle regions are
+ scanned successively and the blue rectangle is ignored even when it exists.
+ As scanning is in progress, the progress report appears in the status bar.
+ If you want to interrupt in the middle of scanning, press \[Stop\] button.
+ It kill driver command and recover the state before scanning.
+ If it does not work for some reason, double click \[Stop\] button. This
+ surely stops scanning and recover TkScan for another scanning.
+ Note that while \[Stop\] button kills scanning command immediately,
+ it takes some time for scanner to respond.  Scanner is a slowly responding
+ peripharal.  I do not recommend frequent use of \[Stop\] button.
+
+
+ Section 6. Configuration
+
+ If you select Preference in File menu, Preference Window appears.
+ * Specify your scanner device if your scanner driver does not find the
+   scanner device correctly without device option. Otherwise, to leave it
+   blank is OK.
+ * You can change the preview image mode and resolution to those you prefer.
+   Press \[Apply\] button after selection.
+ * Gamma correction can be done either by the driver itself or by the
+   external programs like xv or ImageMagic's display or convert if it is
+   not available in the driver. Choose what you prefer.
+ * TkScan makes ~/.tkscan directory to keep its configuration files and
+   scanned image files temporarily. You can delete those temporary files in
+   this directory when exit or right now to free your hard disk.
+ * If you select Save current config in File menu, the various configuration
+   settings are stored in the ~/.tkscan/init file.  You can modify this file
+   to fit your taste.  If you feel like doing more changes, observe the
+   `tkscan' script and copy necessary parts to ~/.tkscan/init file,
+   then modify them.
+"
+
+#------------------------------------------------------------------------
+# MicroTek SCSI scanner -- mtekscan
+#------------------------------------------------------------------------
+
+# Full scanning size. This should be in inches.
+set s(scanwidth)	8.5
+set s(scanheight)	11.6
+
+# Minimum, maximum and step of scanning resolution in dpi
+set s(resolutionRange)	{1 600 1}
+
+# Time(in miliseconds) for coming back from the opposite end 
+# after finishing full height scanning
+set s(scantime)		20000
+
+# Command-line driver
+set s(command)	"mtekscan"
+
+# Scanner device (leave empty for autodetection)
+set s(device)		""
+
+# Options other than for mode and resolution
+#     Label         Type  Variable      Values or Range  Default value
+set s(optionList) { 
+    { {Backtrack}      m  backtrack     {yes no}  yes }
+    { {Speed}          r  speed         {1 7 1}  1 }
+    { {Brightness}     r  brightness    {-100 100 1}  0 }
+    { {Exposure Time}  r  exposuretime  {-18 21 3}  0 }
+    { {Contrast}       r  contrast      {-42 49 1}  0 }
+    { {Halftoning}     r  halftoning    {0 11 1}  0 }
+    { {Shadow}         r  shadow        {0 255 1}  0 }
+    { {Midtone}        r  midtone       {0 255 1}  128 }
+    { {Highlight}      r  highlight     {0 255 1}  255 }
+    { {Gamma}          r  gamma         {0.2 5.0 0.1}  1.0 }
+}
+set s(modedepoptionList) { shadow midtone highlight halftoning gamma }
+
+# Supported scanning modes
+#     Mode   Format  bpp  Mode-dependent options
+set s(modeList) {
+    { Lineart   pbm   1  {} }
+    { Halftone  pbm   1  {halftoning} }
+    { Gray      pgm   8  {shadow midtone highlight gamma} }
+    { Color     ppm  24  {shadow midtone highlight gamma} }
+}
+
+# Gamma correction support
+# 0 : support by scanner driver
+# 1 : support by external (image editor, image converter) commands
+set s(gamma_support)	0
+
+#------------------------------------------------------------------------
+# Procedure launching scanner driver
+#------------------------------------------------------------------------
+
+proc run_scanner_driver { i file } { global s c
+    set command $s(command)
+    set file "-o $c(tkscandir)/$file.pnm"
+    foreach j {tx ty bx by} { set $j [pixelto inch [expr $s($j$i)-$s(o)]] }
+    set geometry "-f $tx $ty $bx $by"
+    switch $s(mode) {
+        Lineart		{ set mode "-b" }
+        Halftone	{ set mode "-a" }
+        Gray		{ set mode "-g" }
+        Color		{ set mode "-c" }
+    }
+    set resolution "-r $s(resolution)"
+    set option "-v $s(speed) -k $s(contrast) -d $s(brightness) \
+                -e $s(exposuretime)"
+    if {$s(backtrack) == "no"} {append option " -B"}
+    foreach i $s($s(mode)option) { switch $i {
+      halftoning  {append option " -H $s(halftoning)"}
+      shadow      {append option " -s $s(shadow)"}
+      midtone     {append option " -m $s(midtone)"}
+      highlight   {append option " -l $s(highlight)"}
+      gamma       { if {$s(gamma_support)==0} {append option " -G $s(gamma)"}}
+    }}
+    set cmdline "$command $s(device) $mode $resolution $option $geometry $file"
+    exec sh -c "echo $cmdline" &
+}
+
+#----------------------------------------------------------------
+# Miscellanous Configuration
+#----------------------------------------------------------------
+
+# Period in miliseconds for checking scanning progress
+set s(loopperiod)	1000
+
+# Preview and Scan mode
+set c(prefile)			preview
+set s(preresolutionRange)       {15 40 1}
+set s(premode)                  Gray
+set s(preresolution)            27
+set s(Defaultmode)		Color
+set s(Defaultresolution)	150
+
+# Quick mode description: unspecified options are set to Default.
+set c(mode_quick_set) {
+    { Copy     { mode=Gray    resolution=150 } }
+    { Fax      { mode=Lineart resolution=200 } } 
+    { OCR      { mode=Lineart resolution=300 } }
+    { Default  {} }
+}
+
+# Paper quick settings, length in inch.
+set c(size_quick_set) {
+    { Max     { 0.0  0.0    $s(scanwidth) $s(scanheight) } }
+    { A4      { 0.0  0.0    8.268  11.6  } }
+    { Letter  { 0.0  0.0    8.5    11.0  } }
+    { Photo   { 0.0  0.0    5.906  3.937 } }
+}
+
+# Length units, their display formats and conversion factors
+set s(unitList) {
+    { mm    25.5  %0.0f }
+    { cm    2.54  %0.1f }
+    { inch   1.0  %0.2f }
+    { pt    72.0  %0.0f }
+}
+
+# Define variables for later use
+foreach i $s(optionList) {
+    set variable [lindex $i 2]
+    set default  [lindex $i 4]
+    set s(Default$variable) $default
+    set s(pre$variable) $default
+}
+foreach i $s(modeList) { set modename [lindex $i 0]
+    set s([set modename]format) [lindex $i 1]
+    set s([set modename]dsizefactor) [lindex $i 2]
+    set s([set modename]option) [lindex $i 3]
+}
+foreach i $s(unitList) { set unitname [lindex $i 0]
+    set s(c$unitname) [lindex $i 1]
+    set s(f$unitname) [lindex $i 2]
+}
+foreach i $c(mode_quick_set) { set c(qmode[lindex $i 0]) [lindex $i 1] }
+foreach i $c(size_quick_set) { set c(qpaper[lindex $i 0]) [lindex $i 1] }
+
+# Adopted scanning mode options in this program
+set s(settingList) "mode resolution"
+foreach i $s(optionList) {lappend s(settingList) [lindex $i 2]}
+foreach i $s(settingList) {set s($i) $s(Default$i)}
+
+# Fonts
+# entry font
+set l(f1) -adobe-helvetica-bold-r-*--12-120-*-*-*-*-*-*
+# fixed font
+set l(f2) -bitstream-courier-bold-r-*--14-140-*-*-*-*-*-*
+
+# Color
+# entry color
+set l(c1) blue
+# primary rectangle
+set l(c2) blue
+# registed rectangle
+set l(c3) red
+# currently processed rectangle
+set l(c5) blue
+# scanning progress bar
+set l(c6) blue
+
+#----------------------------------------------------------------
+# User Configuration
+#----------------------------------------------------------------
+
+# The directory where the configuration file and temporary files are kept
+set c(tkscandir) $env(HOME)/.tkscan
+if [file exists $c(tkscandir)] {
+    if [file isdirectory $c(tkscandir)] {
+    } else {
+        puts "tkscan: ~/.tkscan exists but not a directory"
+        exit
+    }
+} else {
+    puts "tkscan: No $c(tkscandir) directory, create it."
+    exec mkdir $c(tkscandir)
+}
+set c(scanout)		""
+set c(userconf)		"$c(tkscandir)/init"
+set c(tmpdirclear)	1
+
+# The following entries are saved in the user configuration file.
+set s(saveList) "device preresolutionRange premode preresolution pregamma unit"
+foreach i $s(settingList) {append s(saveList) " Default$i"}
+set c(saveList) "mode_quick_set size_quick_set tmpdirclear"
+
+#----------------------------------------------------------------
+# Main Window
+#----------------------------------------------------------------
+
+proc mainWindow {} { global s c w l
+
+    # Menubar
+    #
+    frame .menu -bd 1 -relief flat
+    pack .menu -side top -fill x
+    mb .menu.f File .menu.f.m
+    mb .menu.m Mode .menu.m.m
+    mb .menu.h Help .menu.h.m
+    label .menu.l -text "TkScan v$c(version)" -width 15 -pady 0 \
+          -fg red -font -*-times-bold-r-*--14-140-*
+    pack .menu.f .menu.m .menu.l -side left
+    pack .menu.h -side right
+    menu .menu.f.m -tearoff false
+         .menu.f.m add command -label Preference -command preferenceWindow
+         .menu.f.m add command -label "Set current as Default" \
+                               -command "savecur Default"
+         .menu.f.m add command -label "Save current config" \
+                               -command "savesettings"
+         .menu.f.m add separator
+         .menu.f.m add command -label Quit -command do_exit
+    menu .menu.m.m -tearoff false
+    foreach i $c(mode_quick_set) {
+        set qmodename [lindex $i 0]
+        .menu.m.m add command -command "setquickmode $qmodename" \
+                              -label $qmodename
+    }
+    menu .menu.h.m -tearoff false
+         .menu.h.m add command -label About  -command aboutWindow
+         .menu.h.m add command -label Readme -command readmeWindow
+         .menu.h.m add command -label Guide  -command usageWindow
+
+    # Separator - not indispensible, just for good looking.
+    canvas .sep1  -relief sunken -height 0 -borderwidth 1
+    pack .sep1 -side top -fill x
+
+    # Left frame
+    #
+    frame .left -bd 5 -relief flat
+    pack .left -side left -anchor nw -fill y
+
+    # Preview image canvas
+    set w(prev) .left.preview
+    canvas $w(prev) -relief sunken
+    pack $w(prev) -side top
+    bind $w(prev) <ButtonPress-1>	"settop		%x %y"
+    bind $w(prev) <B1-Motion>		"setbottom	%x %y"
+    bind $w(prev) <ButtonPress-2>	"registrect	%x %y"
+    bind $w(prev) <ButtonPress-3>	"deleterect	%x %y"
+    bind $w(prev) <Double-Button-3>	"deleteallrect"
+
+    # Right frame
+    #
+    frame .right -bd 5 -relief flat
+    pack .right -side left -expand yes -fill both
+
+    # OUTPUT
+    set w(ou) .right.output
+    set w(outputto) $w(ou).u.m
+    frame $w(ou) -bd 1 -relief groove
+    frame $w(ou).u
+    pack $w(ou).u -side top -fill x
+    rl $w(ou).u.l "Output to"
+    menubutton $w(outputto) -menu $w(ou).u.m.m \
+               -anchor w -width 18 -padx 6 -pady 2 -relief ridge -fg $l(c1)
+    pack $w(ou).u.l $w(ou).u.m -side left -fill x
+    menu $w(ou).u.m.m -tearoff false
+    foreach i $c(outputtoList) { set label [lindex $i 0]
+        $w(ou).u.m.m add command -label $label -command "setoutputto $label"
+    }
+
+    # Scanning mode selection
+    set w(mo) .right.mode
+    frame $w(mo) -bd 1 -relief groove
+    # MODE
+    frame $w(mo).m
+    pack $w(mo).m -side top -anchor nw -fill x
+    rl $w(mo).m.label "Mode"
+    menubutton $w(mo).m.mode -menu $w(mo).m.mode.m \
+               -anchor w -width 18 -padx 6 -pady 2 -relief ridge -fg $l(c1)
+    pack $w(mo).m.label $w(mo).m.mode -side left
+    menu $w(mo).m.mode.m -tearoff false
+    foreach i $s(modeList) { set modename [lindex $i 0]
+        $w(mo).m.mode.m add command -label $modename \
+                                    -command "setmode $modename"
+    }
+    # RESOLUTION
+    frame $w(mo).r
+    pack $w(mo).r -side top -anchor nw
+    rl $w(mo).r.label "Resolution"
+    entry $w(mo).r.entry -textvariable s(resolution) \
+          -justify right -relief sunken -width 4 -font $l(f1) -fg $l(c1)
+    scale $w(mo).r.scale -variable s(resolution) -command setresolution \
+          -from [lindex $s(resolutionRange) 0] \
+          -to [lindex $s(resolutionRange) 1] \
+          -resolution [lindex $s(resolutionRange) 2] \
+          -length 100 -orient horizontal -showvalue false
+    pack $w(mo).r.label $w(mo).r.entry $w(mo).r.scale -side left
+    # OPTIONS
+    frame $w(mo).e
+    pack $w(mo).e -side top -anchor nw
+    rl $w(mo).e.label "Options"
+    button $w(mo).e.button -text "Open Manager >>" \
+           -command optionWindow \
+           -anchor e -width 19 -relief ridge -padx 0 -pady 0
+    set w(optionbutton) $w(mo).e.button
+    pack $w(mo).e.label $w(mo).e.button -side left
+
+    # SCANNING GEOMETRY DISPLAY
+    set w(ge) .right.geometry
+    frame $w(ge) -bd 1 -relief groove
+    canvas $w(ge).xy -width 210 -height 80 -bd 1 -relief flat
+    pack $w(ge).xy -fill x
+    set w(ft) $w(ge).xy
+    set finetune_buttons {
+        { tx- {  8 17 } {  8 33 } {  0 25 } }
+        { tx+ { 13 17 } { 13 33 } { 21 25 } }
+        { bx- { 38 17 } { 38 33 } { 30 25 } }
+        { bx+ { 43 17 } { 43 33 } { 51 25 } }
+        { ty- { 17  8 } { 33  8 } { 25  0 } }
+        { ty+ { 17 13 } { 33 13 } { 25 21 } }
+        { by- { 17 38 } { 33 38 } { 25 30 } }
+        { by+ { 17 43 } { 33 43 } { 25 51 } }
+    }
+    set xs 86
+    set ys 21
+    $w(ft) create rectangle [expr 10+$xs] [expr 10+$ys] \
+                            [expr 40+$xs] [expr 40+$ys] -outline blue
+    foreach i $finetune_buttons {
+        set btag [lindex $i 0]
+        for {set j 1} {$j<=3} {incr j} {
+            set x$j [expr [lindex [lindex $i $j] 0] +$xs]
+            set y$j [expr [lindex [lindex $i $j] 1] +$ys]
+        }
+        $w(ft) create polygon $x1 $y1 $x2 $y2 $x3 $y3 -fill black -tag $btag
+        $w(ft) bind $btag <Any-Enter> "$w(ft) itemconfig current -fill red"
+        $w(ft) bind $btag <Any-Leave> "$w(ft) itemconfig current -fill black"
+        $w(ft) bind $btag <ButtonPress> "set s(xx) 0; finetune $btag"
+        $w(ft) bind $btag <ButtonRelease> "set s(xx) 1"
+    }
+    # Coordinates
+    $w(ft) create text [expr 5+$xs] [expr 15+$ys] -tag ul -anchor se \
+                       -fill $l(c1) -font $l(f1)
+    $w(ft) create text [expr 45+$xs] [expr 35+$ys] -tag lr -anchor nw \
+                       -fill $l(c1) -font $l(f1)
+    # Label and Buttons
+    rl $w(ft).l "Geometry"
+    label  $w(ft).u -text "Length Unit"
+    menubutton $w(ft).m -text $s(unit) -menu $w(ft).m.m \
+                        -width 4 -pady 0 -relief ridge -fg $l(c1)
+    menu $w(ft).m.m -tearoff false
+    foreach i $s(unitList) { set label [lindex $i 0]
+        $w(ft).m.m add command -label $label -command \
+                 "setunit $label ; $w(ft).m configure -text $label"
+    }
+    menubutton $w(ft).p -text "Preset" -menu $w(ft).p.m \
+                        -width 6 -pady 0 -relief ridge
+    menu $w(ft).p.m -tearoff false
+    foreach i $c(size_quick_set) {
+        set qpapername [lindex $i 0]
+        $w(ft).p.m add command -command "setquickpaper $qpapername" \
+                              -label $qpapername
+    }
+    button $w(ft).r -text Regist -command {registrect $s(tx0) $s(ty0)} \
+                    -padx 0 -pady 0 -relief ridge
+    button $w(ft).d -text Delete -command {deleterect $s(tx0) $s(ty0)} \
+                    -padx 0 -pady 0 -relief ridge
+    button $w(ft).c -text Clear  -command deleteallrect \
+                    -padx 0 -pady 0  -relief ridge
+    $w(ft) create window   0   0 -window $w(ft).l -anchor nw
+    $w(ft) create window 102   0 -window $w(ft).u -anchor nw
+    $w(ft) create window 177   0 -window $w(ft).m -anchor nw
+    $w(ft) create window 163  22 -window $w(ft).p -anchor nw
+    $w(ft) create window   0  39 -window $w(ft).r -anchor nw
+    $w(ft) create window   0  61 -window $w(ft).d -anchor nw
+    $w(ft) create window  46  61 -window $w(ft).c -anchor nw
+
+    # SIZE : Real, Screen, Data
+    sizeline $w(ge).rs "Real Size" "mm^2"
+    sizeline $w(ge).ss "Screen Size" "pixel^2"
+    sizeline $w(ge).ds "Data Size" "KB"
+
+    # BUTTONS
+    set w(bt) .right.buttons
+    frame $w(bt) -bd 1 -relief flat
+    button $w(bt).p -text Preview -command "Preview" -width 5 -pady 4
+    button $w(bt).s -text SCAN -command {Scan [timetagscanout]} \
+                    -width 10 -pady 4
+    button $w(bt).q -text Stop -command "set s(stop) 1" \
+                    -width 3 -pady 4 -state disabled
+    bind $w(bt).q <Double-Button-1> {
+        set s(pid) [getpid $s(command)]
+        if {"$s(pid)" != ""} { foreach i $s(pid) { exec kill -9 $i } }
+        set s(stop) 0
+        set s(runscan) 0
+        $w(bt).p configure -state normal
+        $w(bt).s configure -state normal
+        $w(bt).q configure -state disabled
+    }
+    pack $w(bt).p $w(bt).s $w(bt).q -side left -expand yes -fill x
+
+    # MESSAGE LINE
+    # Scanning progress: percentage in  bar and number
+    set w(st) .right.status
+    set w(stat_text) $w(st).text
+    set w(stat_prog) $w(st).prog
+    set w(prog_bar) $w(stat_prog).bar
+    set w(prog_perc) $w(stat_prog).percent
+    set s(prog_bar_wd) 173
+    frame $w(st) -bd 1 -relief groove
+    pack $w(st) -side bottom -fill x
+    label $w(stat_text) -anchor w -relief flat -font $l(f1)
+    frame $w(stat_prog)
+    pack $w(stat_text) $w(stat_prog) -side top -fill x
+    canvas $w(prog_bar) -width $s(prog_bar_wd) -height 15 -bd 1 -relief ridge
+    label $w(prog_perc) -width 5 -padx 1 -pady 0 -anchor e -bd 1 -relief ridge
+    pack $w(prog_bar) $w(prog_perc) -side left
+    set s(sg) [$w(prog_bar) create rectangle 0 0 0 18 -fill $l(c6)]
+
+    pack $w(ou) $w(mo) $w(ge) $w(bt) -side top -expand yes -fill x
+    pack $w(st) -side bottom -expand yes -fill x
+
+}
+
+#-----------------------------------------------------------------
+# Preference Window
+#-----------------------------------------------------------------
+
+proc preferenceWindow {} { global s c w l
+    if [winfo exists .preference] { return }
+    toplevel .preference
+    wm title .preference "TkScan: Preference"
+
+    # Driver and Device
+    set pd .preference.device
+    frame $pd -bd 1 -relief groove
+    frame $pd.u
+    frame $pd.d
+    pack $pd.u $pd.d -side top -fill x
+    label $pd.u.l -text Command -width 15 -anchor e
+    entry $pd.u.d -textvariable s(command) \
+                     -width 20 -font $l(f1) -fg $l(c1) -relief sunken
+    pack $pd.u.l $pd.u.d -side left
+    label $pd.d.l -text Device -width 15 -anchor e
+    entry $pd.d.d -textvariable s(device) \
+                     -width 20 -font $l(f1) -fg $l(c1) -relief sunken
+    pack $pd.d.l $pd.d.d -side left
+
+    # Preview
+    set pp .preference.preview
+    frame $pp -bd 1 -relief groove
+    frame $pp.m
+    pack $pp.m -side top -fill x
+    label $pp.m.p -text "Preview Mode" -width 15 -anchor e
+    menubutton $pp.m.m -menu $pp.m.m.m -width 10 -relief ridge -fg $l(c1)
+    set w(premodebutton) $pp.m.m
+    pack $pp.m.p $pp.m.m -side left
+    menu $pp.m.m.m -tearoff false
+    foreach i $s(modeList) { set modename [lindex $i 0]
+        $pp.m.m.m add command -label $modename \
+                              -command "setpremode $modename"
+    }
+        $pp.m.m.m add command -label Current \
+                              -command "setpremode Current"
+    frame $pp.r
+    pack $pp.r -side top -fill x
+    label $pp.r.l -text "Resolution" -width 15 -padx 0 -anchor e
+    set s(prepreresolution) $s(preresolution)
+    entryscale $pp.r s(prepreresolution) {} $s(preresolutionRange) 60
+    button $pp.r.b -text Apply -width 5 -padx 0 \
+              -command {setpreresolution $s(prepreresolution)}
+    pack $pp.r.l $pp.r.e $pp.r.s $pp.r.b -side left
+    setpremode $s(premode)
+
+    # Gamma support
+    set pg .preference.gamma
+    frame $pg -bd 1 -relief groove
+    label $pg.l -text "Gamma Support" -width 15 -anchor e
+    radiobutton $pg.1 -text Driver -variable s(gamma_support) -value 0
+    radiobutton $pg.2 -text External -variable s(gamma_support) -value 1
+    pack $pg.l $pg.1 $pg.2 -side left
+
+    # Image Editor
+    set ie .preference.ie
+    frame $ie -bd 1 -relief groove
+    label $ie.l -text "Image Editor" -width 15 -anchor e
+    menubutton $ie.mb -menu $ie.mb.m -text $c(ImageEditor) \
+                      -width 12 -relief ridge -fg $l(c1)
+    checkbutton $ie.cb -text SW -variable c(ImageEditorWinmode)
+    pack $ie.l $ie.mb $ie.cb -side left
+    menu $ie.mb.m -tearoff false
+    foreach i $c(ImageEditorList) { set iename [lindex $i 0]
+        $ie.mb.m add command -label $iename -command "
+            $ie.mb configure -text $iename
+            set c(ImageEditor) $iename
+        "
+    }
+
+    # Image and Fax viewer
+    set pv .preference.viewer
+    frame $pv -bd 1 -relief groove
+    frame $pv.1
+    frame $pv.2
+    pack  $pv.1 $pv.2 -side top
+    label $pv.1.l -text "Image Viewer" -width 15 -anchor e
+    entry $pv.1.e -textvariable file(viewer) -width 20 -fg $l(c1) -font $l(f1)
+    pack  $pv.1.l $pv.1.e -side left
+    label $pv.2.l -text "Fax Viewer" -width 15 -anchor e
+    entry $pv.2.e -textvariable fax(viewer)  -width 20 -fg $l(c1) -font $l(f1)
+    pack  $pv.2.l $pv.2.e -side left
+
+    # Printer paper
+    set pa .preference.paper
+    frame $pa -bd 1 -relief groove
+    label $pa.l -text "Printer Paper" -width 15 -anchor e
+    radiobutton $pa.1 -text A4 -variable pr(paper) -value A4
+    radiobutton $pa.2 -text Letter -variable pr(paper) -value Letter
+    pack $pa.l $pa.1 $pa.2 -side left
+
+    # Temporary directory
+    set pt .preference.tmpdir
+    frame $pt -bd 1 -relief groove
+    frame $pt.u
+    frame $pt.d
+    pack $pt.u $pt.d -side top -fill x
+    label $pt.u.1 -text "TMP Directory" -width 15 -anchor e
+    checkbutton $pt.u.2 -text "Clear when Exit" -variable c(tmpdirclear)
+    pack $pt.u.1 $pt.u.2 -side left -fill x
+    label $pt.d.1 -text "" -width 15 -anchor e
+    button $pt.d.2 -text "Clear Now" -width 12 \
+           -command clear_tkscandir
+    pack $pt.d.1 $pt.d.2 -side left -fill x
+
+    # Packing
+    pack $pd $pp $pg $ie $pv $pa $pt -side top -fill x
+
+    # Buttons
+    set pb .preference.button
+    frame $pb
+    pack $pb -side bottom -expand yes -fill x
+    button $pb.h -text Done -pady 0 -command { destroy .preference }
+    pack $pb.h -side left -expand yes -fill x
+}
+
+#--------------------------------------------------------------------
+# optionWindow
+#--------------------------------------------------------------------
+
+proc optionWindow {} { global s w l
+    if [winfo exists .option] {
+        $w(optionbutton) configure -text "Open Manager >>"
+        destroy .option
+        return
+    }
+    $w(optionbutton) configure -text "Close Manager <<"
+    frame .option -bd 5 -relief flat
+    pack  .option -side left -fill both
+
+    label .option.ti -text "TkScan Option Manager" \
+                     -width 24 -pady 4 -relief ridge
+    canvas .option.sep -width 0 -height 5 -relief flat
+    pack  .option.ti .option.sep -side top
+
+    foreach i $s(optionList) {
+        set Label       [lindex $i 0]
+        set Type        [lindex $i 1]
+        set Variable    [lindex $i 2]
+        set Values      [lindex $i 3]
+        set wn .option.$Variable
+        frame $wn
+        pack  $wn -side top -fill x
+        label $wn.l -text $Label -width 12 -anchor e
+        switch $Type {
+            s {}
+            m {
+                menubutton $wn.mb -menu $wn.mb.m -text $s($Variable) \
+                  -anchor w -width 13 -padx 10 -pady 2 -relief ridge -fg $l(c1)
+                menu $wn.mb.m -tearoff false
+                pack $wn.l $wn.mb -side left
+                foreach i $Values {
+                    $wn.mb.m add command -label $i -command \
+                             "set s($Variable) $i ; $wn.mb configure -text $i"
+                }
+            }
+            r {
+                entryscale $wn s($Variable) {} $Values 72
+                pack $wn.l $wn.e $wn.s -side left
+            }
+        }
+    }
+    option_select
+}
+
+#-------------------------------------------------------------------------
+# Windows for Help menu
+#-------------------------------------------------------------------------
+
+proc aboutWindow {} { global about_tkscan
+    if [winfo exists .about] return
+    toplevel .about
+    wm title .about "TkScan: About"
+    label .about.l -text $about_tkscan
+    button .about.b -width 8 -text OK -command "destroy .about"
+    pack .about.l .about.b -side top
+}
+
+proc readmeWindow {} {global readme_tkscan l
+    if [winfo exists .readme] return
+    toplevel .readme
+    wm title .readme "TkScan: README"
+    frame .readme.b
+    pack .readme.b -side top -fill x
+    label .readme.b.1 -text "TkScan README" -width 15
+    button .readme.b.2 -text Close -command {destroy .readme}
+    pack .readme.b.1 .readme.b.2 -side left
+    frame .readme.u
+    pack .readme.u -side top -fill x
+    text .readme.u.t -width 68 -height 20 -font $l(f1) \
+                     -yscrollcommand ".readme.u.s set"
+    pack .readme.u.t -side left
+    scrollbar .readme.u.s -command ".readme.u.t yview" -orient vertical
+    pack .readme.u.s -side right -fill y
+    .readme.u.t insert end $readme_tkscan
+}
+
+proc usageWindow {} {global usage_tkscan l
+    if [winfo exists .usage] return
+    toplevel .usage
+    wm title .usage "TkScan: Guide"
+    frame .usage.b
+    pack .usage.b -side top -fill x
+    label .usage.b.1 -text "TkScan Guide" -width 15
+    button .usage.b.2 -text Close -command {destroy .usage}
+    pack .usage.b.1 .usage.b.2 -side left
+    frame .usage.u
+    pack .usage.u -side top -fill x
+    text .usage.u.t -width 68 -height 20 -font $l(f1) \
+         -yscrollcommand ".usage.u.s set"
+    pack .usage.u.t -side left
+    scrollbar .usage.u.s -command ".usage.u.t yview" -orient vertical
+    pack .usage.u.s -side right -fill y
+    .usage.u.t insert end $usage_tkscan
+}
+
+#----------------------------------------------------------------
+# Procedures for configurations
+#----------------------------------------------------------------
+
+proc savesettings {} { global s c
+    set file [open "$c(userconf)" w]
+    puts $file "# tkscan user configuration
+# If you feel like doing more changes, observe the `tkscan' script and
+# copy necessary parts here, then change them.\n"
+    foreach i $s(saveList) { puts $file "set s($i)\t\"$s($i)\"" }
+    foreach i $c(saveList) { puts $file "set c($i)\t\"$c($i)\"" }
+    puts $file "\n# end of tkscan user configuration"
+    close $file
+}
+
+proc setcur { type } { global s w
+    foreach i $s(settingList) {set s($i) $s($type$i)}
+    setmode $s(mode)
+}
+
+proc savecur { type } { global s
+    foreach i $s(settingList) {set s($type$i) $s($i)}
+}
+
+proc setmode { mode } { global s c w
+    set s(mode) $mode
+    if $s(premodecurrent) { set s(premode) $mode }
+    $w(mo).m.mode configure -text $mode
+    if [winfo exists .option] { option_select }
+    showsize 0
+}
+
+proc option_select {} { global s
+    foreach i $s(modedepoptionList) { .option.$i.l configure -fg gray }
+    foreach i $s($s(mode)option) { .option.$i.l configure -fg black }
+}
+
+proc setquickmode { mode } { global s c
+    setcur Default
+    foreach k $c(qmode$mode) {
+        set l [string first = $k]
+        set arg [string range $k 0 [expr [string first = $k]-1]]
+        set val [string range $k [expr [string first = $k]+1] end]
+        set s($arg) $val
+    }
+#   if { [set i $c(qmode$mode\outputto)] != "" } { setoutputto $i }
+    setmode $s(mode)
+}
+
+proc setquickpaper { paper } { global s c
+    for {set j 0} {$j<4} {incr j} { set z$j [format "%0.0f" \
+        [expr [lindex $c(qpaper$paper) $j]*$s(preresolution)+$s(o)]] }
+    settop $z0 $z1 ; setbottom $z2 $z3
+}
+
+proc setpremode { mode } { global s w
+    $w(premodebutton) configure -text $mode
+    if { $mode == "Current" } {
+        set s(premodecurrent) 1
+        set s(premode) $s(mode)
+    } else {
+        set s(premodecurrent) 0
+        set s(premode) $mode
+    }
+}
+
+proc setpreresolution { resolution } { global s w
+    set s(preresolution) $resolution
+    previewcanvas
+    deleteallrect
+    image create photo preview -data {}
+}
+
+proc previewcanvas {} { global s w
+    set s(o) 6
+    set s(prebd) 2
+    set s(scanpwidth) [format "%0.0f" [expr $s(scanwidth) *$s(preresolution)]]
+    set s(scanpheight) [format "%0.0f" [expr $s(scanheight)*$s(preresolution)]]
+    set s(maxpwidth) [expr $s(scanpwidth) +$s(o)]
+    set s(maxpheight) [expr $s(scanpheight)+$s(o)]
+    set s(prewidth) [expr $s(scanpwidth) +2*($s(o)-$s(prebd)-1)]
+    set s(preheight) [expr $s(scanpheight)+2*($s(o)-$s(prebd)-1)]
+    $w(prev) configure -width $s(prewidth) -height $s(preheight) -bd $s(prebd)
+}
+
+proc setresolution { resolution } { global s
+    set s(resolution) $resolution
+    showsize 0
+}
+
+proc setunit { unit } { global s w
+    set s(unit) $unit
+    $w(ge).rs.unit configure -text "$unit^2"
+    showsize 0
+}
+
+proc showsize { i } { global s w
+    set txd [format "$s(f$s(unit))" [pixelto $s(unit) [expr $s(tx$i)-$s(o)]]]
+    set tyd [format "$s(f$s(unit))" [pixelto $s(unit) [expr $s(ty$i)-$s(o)]]]
+    set bxd [format "$s(f$s(unit))" [pixelto $s(unit) [expr $s(bx$i)-$s(o)]]]
+    set byd [format "$s(f$s(unit))" [pixelto $s(unit) [expr $s(by$i)-$s(o)]]]
+    set wd [pixelto $s(unit) [expr $s(bx$i)-$s(tx$i)]]
+    set ht [pixelto $s(unit) [expr $s(by$i)-$s(ty$i)]]
+    set s(sizeReal) [format "$s(f$s(unit)) x $s(f$s(unit))" $wd $ht]
+    set pwd [expr [pixelto inch [expr $s(bx$i)-$s(tx$i)]] * $s(resolution).0]
+    set pht [expr [pixelto inch [expr $s(by$i)-$s(ty$i)]] * $s(resolution).0]
+    set dsizefactor $s($s(mode)dsizefactor)
+    set dsize [expr $pwd * $pht * $dsizefactor / 8192.0]
+    set s(sizeScreen)	[format "%0.0f x %0.0f" $pwd $pht]
+    set s(sizeData)	[format "%0.1f" $dsize]
+    $w(ft) itemconfigure ul -text "($txd, $tyd)"
+    $w(ft) itemconfigure lr -text "($bxd, $byd)"
+    $w(ge).rs.size configure -text "$s(sizeReal)"
+    $w(ge).ss.size configure -text "$s(sizeScreen)"
+    $w(ge).ds.size configure -text "$s(sizeData)"
+}
+
+#----------------------------------------------------------------
+# Procedures for Scanning Area Selection
+#----------------------------------------------------------------
+
+proc settop { xp yp } { global s w l
+    if { $xp < $s(o) } { set xp $s(o) }
+    if { $yp < $s(o) } { set yp $s(o) }
+    if { $xp > $s(maxpwidth) } { set xp $s(maxpwidth) }
+    if { $yp > $s(maxpheight) } { set yp $s(maxpheight) }
+    set s(tx0) $xp
+    set s(ty0) $yp
+    set s(bx0) $s(tx0)
+    set s(by0) $s(ty0)
+    $w(prev) delete $s(rect0)
+    set s(rect0) [$w(prev) create rectangle $s(tx0) $s(ty0) $s(bx0) $s(by0) \
+                  -width 1 -outline $l(c2)]
+    showsize 0
+}
+
+proc setbottom { xp yp } { global s w
+    if { $xp < $s(o) } { set xp $s(o) }
+    if { $yp < $s(o) } { set yp $s(o) }
+    if { $xp > $s(maxpwidth) } { set xp $s(maxpwidth) }
+    if { $yp > $s(maxpheight) } { set yp $s(maxpheight) }
+    if { $xp > $s(tx0) } { set s(bx0) $xp } else { set s(tx0) $xp }
+    if { $yp > $s(ty0) } { set s(by0) $yp } else { set s(ty0) $yp }
+    $w(prev) coords $s(rect0) $s(tx0) $s(ty0) $s(bx0) $s(by0)
+    showsize 0
+}
+
+proc finetune { arg } { global s w
+    if $s(xx) { return }
+    switch $arg {
+        tx- {if {$s(tx0) <= $s(o)} {return}}
+        tx+ {if {$s(tx0) >= $s(bx0)} {return}}
+        ty- {if {$s(ty0) <= $s(o)} {return}}
+        ty+ {if {$s(ty0) >= $s(by0)} {return}}
+        bx- {if {$s(bx0) <= $s(tx0)} {return}}
+        bx+ {if {$s(bx0) >= $s(maxpwidth)} {return}}
+        by- {if {$s(by0) <= $s(ty0)} {return}}
+        by+ {if {$s(by0) >= $s(maxpheight)} {return}}
+    }
+    incr s([string range $arg 0 1]0) [string index $arg 2]1
+    $w(prev) coords $s(rect0) $s(tx0) $s(ty0) $s(bx0) $s(by0)
+    showsize 0
+    after 200 finetune $arg
+}
+
+proc registrect { xp yp } { global s w l
+    if [isinside $xp $yp $s(tx0) $s(ty0) $s(bx0) $s(by0)] {
+        incr s(nrect) 1
+        set s(tx$s(nrect)) $s(tx0)
+        set s(ty$s(nrect)) $s(ty0)
+        set s(bx$s(nrect)) $s(bx0)
+        set s(by$s(nrect)) $s(by0)
+        $w(prev) coords $s(rect0) 0 0 0 0
+        set s(rect$s(nrect)) [$w(prev) create rectangle \
+            $s(tx$s(nrect)) $s(ty$s(nrect)) $s(bx$s(nrect)) $s(by$s(nrect)) \
+            -width 1 -outline $l(c3)]
+        set s(num$s(nrect)) [$w(prev) create text \
+                    [expr ( $s(tx$s(nrect)) + $s(bx$s(nrect))) / 2] \
+                    [expr ( $s(ty$s(nrect)) + $s(by$s(nrect))) / 2] \
+                    -text $s(nrect) -fill $l(c3)]
+        stat_text "Registered Regions: $s(nrect)"
+    }
+
+}
+
+proc deleterect { xp yp } { global s w l
+    for {set i 1} {$i <= $s(nrect)} {incr i} {
+        if [isinside $xp $yp $s(tx$i) $s(ty$i) $s(bx$i) $s(by$i)] {
+            $w(prev) delete $s(rect$i)
+            $w(prev) delete $s(num$i)
+            set j $i
+            while { $j < $s(nrect) } {
+                set k [expr $j + 1]
+                set s(tx$j) $s(tx$k)
+                set s(ty$j) $s(ty$k)
+                set s(bx$j) $s(bx$k)
+                set s(by$j) $s(by$k)
+                set s(rect$j) $s(rect$k)
+                $w(prev) delete $s(num$k)
+                set s(num$j) [$w(prev) create text \
+                    [expr ( $s(tx$j) + $s(bx$j)) / 2] \
+                    [expr ( $s(ty$j) + $s(by$j)) / 2] \
+                    -text $j -fill $l(c3)]
+                incr j 1
+            }
+            incr s(nrect) -1
+            stat_text "Registered Regions: $s(nrect)"
+            break
+        }
+    }
+}
+
+proc deleteallrect {} { global s w l
+    for {set i 1} {$i <= $s(nrect)} {incr i} {
+        $w(prev) delete $s(rect$i)
+        $w(prev) delete $s(num$i)
+    }
+    set s(nrect) 0
+    $w(prev) coords $s(rect0) 0 0 0 0
+    stat_text "Registered Regions: $s(nrect)"
+}
+
+#----------------------------------------------------------------
+# (Combined) Widgets
+#----------------------------------------------------------------
+
+proc mb { wn text menu } { menubutton $wn -text $text -menu $menu \
+                           -underline 0 -width 8 -relief flat }
+
+proc rl { wn text } { label $wn -text "$text" -width 10 -anchor e }
+
+proc entryscale { wn var command range length } { global l
+    entry $wn.e -textvariable $var \
+          -justify right -relief sunken -width 4 -font $l(f1) -fg $l(c1)
+    scale $wn.s -variable $var -command $command \
+          -from       [lindex $range 0] \
+          -to         [lindex $range 1] \
+          -resolution [lindex $range 2] \
+          -length $length -orient horizontal -showvalue false
+}
+
+proc sizeline { wn label unit } { global w l
+    frame $wn
+    pack  $wn -side top -anchor nw
+    label $wn.label -text $label -width 10 -anchor e
+    label $wn.size -anchor e -relief flat -width 12 -font $l(f1) -fg $l(c1)
+    label $wn.unit -text $unit -anchor w -width 6 -padx 4 -relief flat
+    pack  $wn.label $wn.size $wn.unit -side left
+}
+
+#----------------------------------------------------------------
+# Miscellaneous procedures
+#----------------------------------------------------------------
+
+proc do_exit {} { global c
+    if $c(tmpdirclear) { clear_tkscandir }
+    exit
+}
+
+proc clear_tkscandir {} { global c
+    exec sh -c "rm -f $c(tkscandir)/$c(prefile).* $c(tkscandir)/$c(scanout)*"
+}
+
+proc stat_text { message } { global w
+    $w(stat_text) configure -text "$message"
+}
+
+proc timetagscanout {} { global c
+    set date [open "|date +%H%M%S"]
+    set Time [gets $date]
+    close $date
+    return "$c(scanout)$Time"
+}
+
+proc getpid { command } {
+    set psList [open "|ps xc"]
+    set pid ""
+    while {[set i [gets $psList]] != {}} {
+        if [regexp "$command" "$i"] {
+            lappend pid [lindex $i 0]
+        }
+    }
+    close $psList
+    return $pid
+}
+
+proc kill_scan_command {} { global s
+    set s(pid) [getpid $s(command)]
+    if {"$s(pid)" != ""} { foreach i $s(pid) { exec kill -HUP $i } }
+}
+
+proc isinside { x y tx ty bx by } {
+    if { $x >= $tx && $x <= $bx && $y >= $ty && $y <= $by } { return 1
+    } else { return 0 }
+}
+
+proc pixelto { unit length } { global s
+    return [expr $length/$s(preresolution).0*$s(c$unit)]
+}
+
+proc gamma_table { gamma } {
+    set table 0
+    for {set i 1} {$i < 256} {incr i} {
+        set value [expr 255.*pow([expr $i./255.],[expr 1./$gamma])]
+        append table ,[format "%0.0f" $value]
+    }
+    return $table
+}
+
+#---------------------------------------------------------------
+# Procedures for Scanning : Preview and Scan
+#----------------------------------------------------------------
+
+proc Preview {} { global s c w
+    # WHEN STOP BUTTON IS PRESSED WHILE PREVIEWING
+    if $s(stop) {
+        # kill scan command
+        kill_scan_command
+        stat_text "Scanning Preview ... Stopped"
+        set s(runscan) 0
+        set s(stop) 0
+        $w(bt).p configure -state normal
+        $w(bt).s configure -state normal
+        $w(bt).q configure -state disabled
+        return
+    }
+    # BUTTON STATE DURING PREVIEWING
+    $w(bt).p configure -state disabled
+    $w(bt).s configure -state disabled
+    $w(bt).q configure -state normal
+    if {$s(runscan) == 0} {
+    # LAUNCH COMMAND-LINE SCANNNER DRIVER
+        savecur cur
+        setcur pre
+        settop $s(o) $s(o)
+        setbottom $s(maxpwidth) $s(maxpheight)
+        image create photo preview -data {}
+        stat_text "Scanning Preview ..."
+        update
+        run_scanner_driver 0 $c(prefile)
+        set s(runscan) 1
+    } else {
+    # CHECK PREVIEWING PROGRESS
+        set s(pid) [getpid $s(command)]
+        if {$s(pid) == ""} {
+        # PREVIEWING IS FINISHED
+            set prefile $c(tkscandir)/$c(prefile)
+            if { $s($s(premode)format) == "pbm" } {
+                exec convert $prefile.pnm $prefile.xbm
+                image create bitmap preview -background white -file $prefile.xbm
+            } else {
+                if {$s(gamma_support)==1} { set gamma $s(pregamma)
+                                   } else { set gamma 1 }
+                image create photo preview -gamma $gamma -file $prefile.pnm
+            }
+            set s(runscan) 0
+            stat_text "Scanning Preview ... Done"
+            update
+            $w(bt).p configure -state normal
+            $w(bt).s configure -state normal
+            $w(bt).q configure -state disabled
+            setcur cur
+            return
+        }
+    }
+    # REPEAT UNTIL PREVIEWING IS FINISHED.
+    after $s(loopperiod) Preview
+}
+
+proc Scan { prefix } { global s c w l
+    # WHEN STOP BUTTON IS PRESSED WHILE SCANNING
+    if $s(stop) {
+        # kill scan command
+        kill_scan_command
+        stat_text "Scanning $s(curscan) / $s(nrect) ... Stopped"
+        # return to the state ready for another scanning.
+        if $s(nrect) {
+            $w(prev) itemconfigure $s(rect$s(curscan)) -outline $l(c3)
+            $w(prev) itemconfigure $s(num$s(curscan)) -fill $l(c3)
+        }
+        set s(runscan) 0
+        set s(curscan) 0
+        set s(stop) 0
+        $w(bt).p configure -state normal
+        $w(bt).s configure -state normal
+        $w(bt).q configure -state disabled
+        return
+    }
+    # BUTTON STATE DURING SCANNING
+    $w(bt).p configure -state disabled
+    $w(bt).s configure -state disabled
+    $w(bt).q configure -state normal
+    if {$s(runscan) == 0} {
+    # LAUNCH COMMAND-LINE SCANNER DRIVER
+        if {$s(nrect) == 0} {
+            stat_text "Scanning $s(curscan) / $s(nrect) ..."
+            run_scanner_driver $s(curscan) $prefix-$s(curscan)
+            set s(runscan) 1
+        } else {
+            incr s(curscan) 1
+            stat_text "Scanning $s(curscan) / $s(nrect) ..."
+            $w(prev) itemconfigure $s(rect$s(curscan)) -outline $l(c5)
+            $w(prev) itemconfigure $s(num$s(curscan)) -fill $l(c5)
+            showsize $s(curscan)
+            update
+            run_scanner_driver $s(curscan) $prefix-$s(curscan)
+            set s(runscan) 1
+        }
+    } else {
+    # CHECK SCANNING PROGRESS
+        set s(pid) [getpid $s(command)]
+        if {$s(pid) != ""} {
+        # CURRENT SCANNING IS STILL IN PROGRESS.
+            set csize [format "%0.1f" [expr [file size \
+                          $c(tkscandir)/$prefix-$s(curscan).pnm] / 1024.0]]
+            set percent [format "%0.0f" [expr $csize / $s(sizeData) * 100]]
+            stat_text \
+                "Scanning $s(curscan) / $s(nrect) ... $csize / $s(sizeData)"
+            set x [format "%0.0f" \
+                  [expr ($s(prog_bar_wd) + 4) * $percent.0 / 100]]
+            $w(prog_perc) configure -text "$percent%"
+            $w(prog_bar) coords $s(sg) 0 0 $x 18
+            update
+        } else {
+        # CURRENT SCANNING IS FINISHED.
+            # notify the current scanning is finished.
+            set s(runscan) 0
+            stat_text "Scanning $s(curscan) / $s(nrect) ... Done"
+            $w(prog_perc) configure -text ""
+            $w(prog_bar) coords $s(sg) 0 0 0 18
+            if $s(nrect) {
+                $w(prev) itemconfigure $s(rect$s(curscan)) -outline $l(c3)
+                $w(prev) itemconfigure $s(num$s(curscan)) -fill $l(c3)
+            }
+            update
+            # PLAY WITH THE OUTPUT OF CURRENT SCANNING.
+            make_output $prefix $s(curscan)
+            if {$s(curscan) < $s(nrect)} {
+            # Wait until scanner is prepared again for another scanning.
+                after [format "%0.0f" \
+                [expr $s(scantime).0 * $s(by$s(curscan)) / $s(maxpheight)]]
+            } else {
+            # All scanning regions are exhasted.
+                # Recover the state ready for another scanning.
+                set s(curscan) 0
+                $w(bt).p configure -state normal
+                $w(bt).s configure -state normal
+                $w(bt).q configure -state disabled
+                # EXIT loopscan
+                return
+            }
+        }
+    }
+    # REPEAT THE ABOVE UNTIL FINISHED OR STOPPED.
+    after $s(loopperiod) Scan $prefix
+}
+
+#---------------------------------------------------------------
+# Output Treatment
+#----------------------------------------------------------------
+
+# Supported output pipes
+set c(outputtoList) { ImageEditor File Printer Fax OCR }
+
+proc setoutputto { type } { global s c w l
+    set c(outputto) $type
+    $w(outputto) configure -text $type
+    if [winfo exists .output] { destroy .output }
+    frame .output -bd 5 -relief flat
+    pack  .output -side right -expand yes -fill both
+    window_$c(outputto) .output
+}
+
+proc make_output { prefix i } { global s c
+    make_$c(outputto) $prefix $i
+}
+
+#---------------------------------------------------------------
+# Image Editor
+#----------------------------------------------------------------
+
+#
+# Configurations
+
+set c(ImageEditorList) {
+    { XV          xv      }
+    { ImageMagic  display }
+    { GIMP        gimp    }
+}
+set c(ImageEditor) XV
+
+# ImageEditorWinmode: 0=in one window, 1=separate window
+set c(ImageEditorWinmode) 1
+
+foreach i $c(ImageEditorList) { set c([lindex $i 0]command) [lindex $i 1] }
+
+#
+# window_ImageEditor and make_ImageEditor
+
+proc window_ImageEditor { wn } {
+    setcur Default
+}
+
+proc make_ImageEditor { prefix i } { global s c
+    set ImageEditor $c($c(ImageEditor)command)
+    if {$c(ImageEditorWinmode) == 1 || $s(nrect) == 0} {
+        set geometry "-geometry [format "+%d+%d" [expr $i*100] [expr $i*25]]"
+        set file "$c(tkscandir)/$prefix-$i.pnm"
+    } else {
+        if {$i < $s(nrect)} {return}
+        set geometry "-geometry +0+0"
+        for {set files ""; set j 1} {$j <= $s(nrect)} {incr j} {
+            append file " $c(tkscandir)/$prefix-$j.pnm"
+        }
+    }
+    if {$s(gamma_support)==1} {
+        switch $ImageEditor {
+            xv { set gamma "-gamma $s(gamma) \
+                -cgamma $s(gamma_red) $s(gamma_green) $s(gamma_blue)"
+            }
+            display {
+                set gamma "-gamma $s(gamma_red),$s(gamma_green),$s(gamma_blue)"
+            }
+            gimp {
+            }
+        }
+    } else { set gamma "" }
+    exec sh -c \
+        "$ImageEditor $geometry $gamma $file ; \
+         rm -f $file" &
+    stat_text "Scanning $s(curscan) / $s(nrect) ... sent to $ImageEditor"
+    update
+}
+
+#
+# Subroutines
+
+proc setImageEditor { i } { global s c w
+    set c(ImageEditor) $i
+    set c(ImageEditor) $i
+#   $w(outtype) configure -text [arrayel $c(ImageEditorList) $i 0]
+}
+
+#---------------------------------------------------------------
+# File Output
+#----------------------------------------------------------------
+
+#
+# Configuration
+
+set file(name) "scanout-#.pnm"
+set file(dir) [pwd]
+set file(viewer) "xv -geometry +0+0"
+
+set file(typeList) {
+    { RAW  pnm  }
+    { BMP  bmp  }
+    { EPS  eps  }
+    { GIF  gif  }
+    { JPEG jpg  }
+    { PCD  pcd  }
+    { PCL  pcl  }
+    { PCX  pcx  }
+    { PDF  pdf  }
+    { PNG  png  }
+    { PS   ps   }
+    { TIFF tiff }
+    { XBM  xbm  }
+    { XPM  xpm  }
+}
+set file(type) RAW
+set file(imageonly) 1
+
+foreach i $file(typeList) { set file(surfix_[lindex $i 0]) [lindex $i 1] }
+set file(surfixList) "\\.pgm$|\\.ppm$"
+foreach i $file(typeList) { append file(surfixList) "|\\.[lindex $i 1]$" }
+
+#
+# window_File and make_File
+
+proc window_File { wn } { global file w l
+    label $wn.ti -text "TkScan File Manager" -width 24 -pady 4 -relief ridge
+    canvas $wn.sep -width 0 -height 5 -relief flat
+    pack  $wn.ti $wn.sep -side top
+
+    frame $wn.file -bd 1 -relief groove
+    frame $wn.file.ft -bd 0
+    pack  $wn.file.ft -side top -fill x
+    label $wn.file.ft.l -text "File Type" -width 9 -anchor w
+    menubutton $wn.file.ft.mb -menu $wn.file.ft.mb.m \
+                              -width 8 -fg $l(c1) -relief ridge
+    pack $wn.file.ft.l $wn.file.ft.mb -side left
+    set w(filetype) $wn.file.ft.mb
+    menu $wn.file.ft.mb.m -tearoff false
+    foreach i $file(typeList) { set type [lindex $i 0]
+         $wn.file.ft.mb.m add command -label $type -command "setFiletype $type"
+    }
+    frame $wn.file.fn -bd 0
+    pack  $wn.file.fn -side top -fill x
+    label $wn.file.fn.l -text "File Name" -width 9 -anchor w
+    entry $wn.file.fn.e -textvariable file(name) \
+                        -width 21 -fg $l(c1) -font $l(f1)
+    pack  $wn.file.fn.l $wn.file.fn.e -side left
+
+    frame $wn.dir -bd 1 -relief groove
+    frame $wn.dir.l
+    label $wn.dir.l.l -text Directory -width 9 -anchor w
+    checkbutton $wn.dir.l.c1 -text "Image files only" \
+                             -variable file(imageonly) -anchor w
+    pack $wn.dir.l.l $wn.dir.l.c1 -side left -fill x
+    entry $wn.dir.e -textvariable file(dir) \
+                    -width 30 -relief sunken -font $l(f1) -fg $l(c1)
+    frame $wn.dir.f
+    listbox $wn.dir.f.b -width 28 -height 9 -relief sunken -font $l(f1) \
+                        -yscroll "$wn.dir.f.s set"
+    set w(dirlist) $wn.dir.f.b
+    scrollbar $wn.dir.f.s -command "$wn.dir.f.b yview"
+    pack $wn.dir.f.b -side left  -fill both -expand yes
+    pack $wn.dir.f.s -side right -fill y
+    frame $wn.dir.b
+    button $wn.dir.b.1 -text view   -width 4 -pady 0 -relief ridge -command {
+        if {[$w(dirlist) curselection] != {}} {
+            set f [lindex [selection get] 1]
+            if [file isdirectory $f] {
+                cd $f
+                set file(dir) [pwd]
+                update_dir
+            } else {
+                exec sh -c "$file(viewer) $f" &
+            }
+        }
+    }
+    button $wn.dir.b.2 -text remove -width 4 -pady 0 -relief ridge -command {
+        if {[$w(dirlist) curselection] != {}} {
+            set f [lindex [selection get] 1]
+            if [file isdirectory $f] {
+            } else {
+                exec sh -c "rm -f $f" &
+                update_dir
+            }
+        }
+    }
+    button $wn.dir.b.3 -text mkdir  -width 4 -pady 0 -relief ridge -command {
+        if ![file exists $file(dir)] {
+            exec mkdir $file(dir)
+            cd $file(dir)
+            update_dir
+        }
+    }
+    button $wn.dir.b.4 -text update -width 4 -pady 0 -relief ridge -command {
+        update_dir
+    }
+    pack $wn.dir.b.1 $wn.dir.b.2 $wn.dir.b.3 $wn.dir.b.4 \
+         -side left -fill x -expand yes
+    pack $wn.dir.l $wn.dir.e $wn.dir.f $wn.dir.b -side top -fill x
+    update_dir
+    bind $wn.dir.f.b <Double-Button-1> {
+        if {[$w(dirlist) curselection] != {}} {
+            set f [lindex [selection get] 1]
+            if [file isdirectory $f] {
+                cd $f
+                set file(dir) [pwd]
+                update_dir
+            } else {
+                exec sh -c "$file(viewer) $f" &
+            }
+        }
+    }
+    bind $wn.dir.e <KeyPress-Return> { cd $file(dir) ; update_dir }
+
+    pack $wn.file $wn.dir -side top -expand yes -fill x
+
+    setcur Default
+    setFiletype $file(type)
+}
+
+proc make_File { prefix i } { global file s c
+    set scanned "$c(tkscandir)/$prefix-$i"
+    # Output file name: replace # to $i
+    set p [string last # $file(name)]
+    if {$p >= 0} {
+        set outfile [string range $file(name) 0 [expr $p - 1]]$i[string \
+                               range $file(name) [expr $p + 1] end]
+    } else {
+        set outfile $file(name)
+    }
+    # Run ImageMagic's convert
+    if {$s(gamma_support)==1} {
+        set gamma "-gamma $s(gamma_red),$s(gamma_green),$s(gamma_blue)"
+    } else {
+        set gamma ""
+    }
+    exec sh -c \
+        "convert $gamma $scanned.pnm $scanned-x.$file(surfix) ; \
+         rm -f $scanned.pnm ; \
+         mv $scanned-x.$file(surfix) $file(dir)/$outfile" &
+    stat_text "Scanning $s(curscan) / $s(nrect) ... $outfile"
+    update
+    check_outfile $file(dir)/$outfile
+}
+
+#
+# Subroutines
+
+proc setFiletype { type } { global file w
+    set file(type) $type
+    $w(filetype) configure -text $type
+    set file(surfix) $file(surfix_$type)
+    set p [string last . $file(name)]
+    if {$p > 0} {
+        set file(name) [string range $file(name) 0 $p]$file(surfix)
+    }
+}
+
+proc update_dir {} { global file w
+    $w(dirlist) delete 0 end
+    set filelist [exec ls -a $file(dir)]
+    foreach i $filelist {
+        if {[file isdirectory $file(dir)/$i] && $i!="." && !$file(imageonly)} {
+            $w(dirlist) insert end [format " %9s  %-17s " "Directory" $i]
+        }
+    }
+    foreach i $filelist {
+        if { [file isfile $file(dir)/$i] && \
+             ([regexp -nocase $file(surfixList) $i] || !$file(imageonly)) } {
+            set size [expr [file size $file(dir)/$i] / 1024.0]
+            $w(dirlist) insert end [format " %6.0f  %-20s " $size $i]
+        }
+    }
+}
+
+proc check_outfile { filename } {
+    if [file exists $filename] {
+        update_dir
+    } else {
+        after 1000 check_outfile $filename
+    }
+}
+
+#---------------------------------------------------------------
+# Printer
+#----------------------------------------------------------------
+
+#
+# Configurations
+
+set pr(printerList) {
+    { gv  { ghostview -geometry +0+0 } }
+    { lp  { lpr                      } }
+}
+set pr(paperList) { A4 Letter }
+set pr(positionList) { Center UpperLeft UpperRight LowerLeft LowerRight }
+set pr(zoomRange) {10 300 1}
+set pr(xoffsetRange) {0 300 1}
+set pr(yoffsetRange) {0 300 1}
+set pr(printer) gv
+set pr(paper) A4
+set pr(position) Center
+set pr(zoom) 100
+set pr(xoffset) 72
+set pr(yoffset) 72
+set pr(autoprint) 1
+set pr(c) 0
+set pr(viewer) $file(viewer)
+
+foreach i $pr(printerList) { set pr([lindex $i 0]command) [lindex $i 1] }
+
+#
+# window_Printer and make_Printer
+
+proc window_Printer { wn } { global pr c w l
+    label $wn.ti -text "TkScan Print Manager" -width 24 -pady 4 -relief ridge
+    canvas $wn.sep -width 0 -height 5 -relief flat
+    pack  $wn.ti $wn.sep -side top
+
+    frame $wn.pr -bd 1 -relief groove
+    label $wn.pr.l -text Printer -width 9 -anchor w
+    menubutton $wn.pr.mb -menu $wn.pr.mb.m \
+                         -anchor w -width 8 -fg $l(c1) -relief ridge
+    set w(printer) $wn.pr.mb
+    pack $wn.pr.l $wn.pr.mb -side left
+    menu $wn.pr.mb.m -tearoff false
+    foreach i $pr(printerList) { set printer [lindex $i 0]
+        $wn.pr.mb.m add command -label $printer -command "setPrinter $printer"
+    }
+
+    frame $wn.po -bd 1 -relief groove
+    frame $wn.po.zo
+    label $wn.po.zo.l -text "Zoom" -width 9 -anchor w
+    entryscale $wn.po.zo pr(zoom) {} $pr(zoomRange) 113
+    pack $wn.po.zo.l $wn.po.zo.e $wn.po.zo.s -side left
+    frame $wn.po.po
+    label $wn.po.po.l -text Position -width 9 -anchor w
+    menubutton $wn.po.po.mb -menu $wn.po.po.mb.m \
+                            -anchor w -width 10 -fg $l(c1) -relief ridge
+    set w(printposition) $wn.po.po.mb
+    pack  $wn.po.po.l $wn.po.po.mb -side left
+    menu $wn.po.po.mb.m -tearoff false
+    foreach i $pr(positionList) { set position [lindex $i 0]
+        $wn.po.po.mb.m add command -label $position \
+                                   -command "setPrintposition $position"
+    }
+    frame $wn.po.xo
+    label $wn.po.xo.l -text "X offset" -width 9 -anchor e
+    entryscale $wn.po.xo pr(xoffset) {} $pr(xoffsetRange) 113
+    pack $wn.po.xo.l $wn.po.xo.e $wn.po.xo.s -side left
+    frame $wn.po.yo
+    label $wn.po.yo.l -text "Y offset" -width 9 -anchor e
+    entryscale $wn.po.yo pr(yoffset) {} $pr(yoffsetRange) 113
+    pack $wn.po.yo.l $wn.po.yo.e $wn.po.yo.s -side left
+    pack $wn.po.zo $wn.po.po $wn.po.xo $wn.po.yo -side top -fill x
+    set w(xoffsetlabel) $wn.po.xo.l
+    set w(yoffsetlabel) $wn.po.yo.l
+
+    frame $wn.pl -bd 1 -relief groove
+    frame $wn.pl.b
+    pack $wn.pl.b -side top -fill x
+    set w(printpagelist) $wn.pl.b.b
+    listbox $w(printpagelist) -width 19 -height 6 -font $l(f1) -fg blue \
+            -yscrollcommand "$wn.pl.b.s set"
+    pack $wn.pl.b.b -side left
+    scrollbar $wn.pl.b.s -orient vertical -command "$w(printpagelist) yview"
+    pack $wn.pl.b.s -side left -fill y
+    frame $wn.pl.b.f
+    pack $wn.pl.b.f -side right
+    bind $w(printpagelist) <Double-Button-1> {
+        if {[$w(printpagelist) curselection] != {}} {
+            set i $pr([$w(printpagelist) curselection])
+            do_print $i
+        }
+    }
+    button $wn.pl.b.f.1 -text Remove -width 5 -pady 2 -command {
+        if {[set t [$w(printpagelist) curselection]] != {}} {
+            exec sh -c "rm -f $c(tkscandir)/[lindex $pr($t) 0].pnm"
+            for {set i $t} {$i < [expr $pr(c)-1]} {incr i} {
+                set pr($i) $pr([expr $i+1])
+            }
+            incr pr(c) -1
+            update_printpagelist
+            if {$t < $pr(c)} { $w(printpagelist) selection set $t
+                      } else { $w(printpagelist) selection set [expr $t-1] }
+        }
+    }
+    button $wn.pl.b.f.2 -text View   -width 5 -pady 2 -command {
+        if {[set i [$w(printpagelist) curselection]] != {}} {
+            set img [lindex $pr($i) 0].pnm
+            exec sh -c "$pr(viewer) $c(tkscandir)/$img" &
+        }
+    }
+    pack $wn.pl.b.f.1 $wn.pl.b.f.2 -side top
+
+    frame $wn.b
+    checkbutton $wn.b.0 -text Auto -variable pr(autoprint)
+    button $wn.b.1 -text Print -width 21 -command {
+        if {[set i [$w(printpagelist) curselection]] != {}} {do_print $i}
+    }
+    pack $wn.b.0 $wn.b.1 -side left -fill x
+
+    pack $wn.pr $wn.po $wn.pl $wn.b -side top -fill x -expand yes
+
+    setPrinter $pr(printer)
+    setPrintposition $pr(position)
+}
+
+proc make_Printer { prefix i } { global pr s
+    set tag "$prefix-$i"
+    stat_text "Scanning $s(curscan) / $s(nrect) ... $tag.pnm"
+    set pr($pr(c)) "$tag $s(tx$i) $s(ty$i) $s(bx$i) $s(by$i)"
+    if $pr(autoprint) { do_print $pr(c) }
+    incr pr(c)
+    update_printpagelist
+    update
+}
+
+#
+# Subroutines
+
+proc update_printpagelist {} { global pr w
+    $w(printpagelist) delete 0 end
+    for {set i 0} {$i < $pr(c)} {incr i} {
+        $w(printpagelist) insert end [lindex $pr($i) 0].pnm
+    }
+}
+
+proc do_print { i } { global pr s c
+    set tag [lindex $pr($i) 0]
+    set tx  [lindex $pr($i) 1]
+    set ty  [lindex $pr($i) 2]
+    set bx  [lindex $pr($i) 3]
+    set by  [lindex $pr($i) 4]
+    set print $pr($pr(printer)command)
+    if {$s(gamma_support)==1} {
+        set gamma "-gamma $s(gamma_red),$s(gamma_green),$s(gamma_blue)"
+    } else {
+        set gamma ""
+    }
+    switch $pr(paper) {
+        A4     { set pwd 595. ; set pht 842. ; set offset 72 }
+        Letter { set pwd 612. ; set pht 792. ; set offset 72 }
+    }
+    set rwd [pixelto pt [expr $bx-$tx]]
+    set rht [pixelto pt [expr $by-$ty]]
+    set zoom [expr $pr(zoom).0/100.0]
+    set iwd [expr $rwd*$zoom]
+    set iht [expr $rht*$zoom]
+    if {$iwd > $pwd} {
+        set iwd $pwd
+        set zoom [expr $pwd/$rwd]
+        set iht [expr $rht*$zoom]
+    }
+    if {$iht > $pht} {
+        set iht $pht
+        set zoom [expr $pht/$rht]
+        set iwd [expr $rwd*$zoom]
+    }
+    set pr(zoom) [format "%0.0f" [expr $zoom*100]]
+    set xspace [expr $pwd-$iwd]
+    set yspace [expr $pht-$iht]
+    switch $pr(position) {
+        Center {
+            set xoffset [expr ($pwd-$iwd)/2]
+            set yoffset [expr ($pht-$iht)/2]
+        }
+        UpperLeft {
+            if { $pr(xoffset) <= $xspace } {
+                 set xoffset $pr(xoffset)
+            } else {
+                 set xoffset $xspace
+                 set pr(xoffset) [format "%0.0f" $xspace]
+            }
+            if { $pr(yoffset) <= $yspace } {
+                 set yoffset [expr $yspace-$pr(yoffset)]
+            } else {
+                 set yoffset 0
+                 set pr(yoffset) [format "%0.0f" $yspace]
+            }
+        }
+        UpperRight {
+            if { $pr(xoffset) <= $xspace } {
+                 set xoffset [expr $xspace-$pr(xoffset)]
+            } else {
+                 set xoffset 0
+                 set pr(xoffset) [format "%0.0f" $xspace]
+            }
+            if { $pr(yoffset) <= $yspace } {
+                 set yoffset [expr $yspace-$pr(yoffset)]
+            } else {
+                 set yoffset 0
+                 set pr(yoffset) [format "%0.0f" $yspace]
+            }
+        }
+        LowerLeft {
+            if { $pr(xoffset) <= $xspace } {
+                 set xoffset $pr(xoffset)
+            } else {
+                 set xoffset $xspace
+                 set pr(xoffset) [format "%0.0f" $xspace]
+            }
+            if { $pr(yoffset) <= $yspace } {
+                 set yoffset $pr(yoffset)
+            } else {
+                 set yoffset $yspace
+                 set pr(yoffset) [format "%0.0f" $yspace]
+            }
+        }
+        LowerRight {
+            if { $pr(xoffset) <= $xspace } {
+                 set xoffset [expr $xspace-$pr(xoffset)]
+            } else {
+                 set xoffset 0
+                 set pr(xoffset) [format "%0.0f" $xspace]
+            }
+            if { $pr(yoffset) <= $yspace } {
+                 set yoffset $pr(yoffset)
+            } else {
+                 set yoffset $yspace
+                 set pr(yoffset) [format "%0.0f" $yspace]
+            }
+        }
+    }
+    set page [format "-page $pr(paper)+%0.0f+%0.0f" $xoffset $yoffset]
+    set geometry [format "-geometry %0.0fx%0.0f" $iwd $iht]
+    exec sh -c \
+        "convert $gamma $page $geometry \
+                 $c(tkscandir)/$tag.pnm $c(tkscandir)/$tag.ps ; \
+         $print $c(tkscandir)/$tag.ps ; \
+         rm -f $c(tkscandir)/$tag.ps" &
+}
+
+proc setPrinter { printer } { global pr w
+    set pr(printer) $printer
+    $w(printer) configure -text $printer
+}
+
+proc setPrintposition { position } { global pr s c w
+    set pr(position) $position
+    $w(printposition) configure -text $position
+    if {$position == "Center"} {
+        $w(xoffsetlabel) configure -fg gray
+        $w(yoffsetlabel) configure -fg gray
+    } else {
+        $w(xoffsetlabel) configure -fg black
+        $w(yoffsetlabel) configure -fg black
+    }
+}
+
+#---------------------------------------------------------------
+# Fax
+#----------------------------------------------------------------
+
+#
+# Configurations
+
+set fax(viewer) "viewfax -geometry +0+0"
+set fax(numberlistfile) "$c(tkscandir)/faxnumber"
+set fax(c) 0
+
+#
+# window_Fax and make_Fax
+
+proc window_Fax { wn } { global fax c w l
+    label $wn.ti -text "TkScan Fax Manager" -width 24 -pady 4 -relief ridge
+    canvas $wn.sep -width 0 -height 5 -relief flat
+    pack  $wn.ti $wn.sep -side top
+
+    frame $wn.fr -bd 1 -relief groove
+    frame $wn.fr.l
+    pack  $wn.fr.l -side top -fill x
+    label $wn.fr.l.l -text "Fax to" -width 10 -anchor w
+    button $wn.fr.l.b -text "Number List" -command faxnumberWindow \
+                                    -width 13 -padx 2 -pady 0 -relief ridge
+    button $wn.fr.l.c -text "Clear" -width  5 -padx 0 -pady 0 -relief ridge \
+           -command {set fax(number) "" ; set fax(recipient) ""}
+    pack $wn.fr.l.l $wn.fr.l.b $wn.fr.l.c -side left
+    frame $wn.fr.fn
+    pack  $wn.fr.fn -side top -fill x
+    label $wn.fr.fn.l -text "Number" -width 10 -anchor e
+    entry $wn.fr.fn.e -textvariable fax(number) \
+                      -width 20 -font $l(f1) -fg $l(c1)
+    pack $wn.fr.fn.l $wn.fr.fn.e -side left
+    frame $wn.fr.re
+    pack  $wn.fr.re -side top -fill x
+    label $wn.fr.re.l -text Recipient -width 10 -anchor e
+    entry $wn.fr.re.e -textvariable fax(recipient) \
+                      -width 20 -font $l(f1) -fg $l(c1)
+    pack $wn.fr.re.l $wn.fr.re.e -side left
+
+    frame $wn.pl -bd 1 -relief groove
+    frame $wn.pl.a
+    pack $wn.pl.a -side top -fill x
+    label $wn.pl.a.l -text "Page List" -width 10 -anchor w
+    pack $wn.pl.a.l -side left
+    frame $wn.pl.b
+    pack $wn.pl.b -side top -fill x
+    set w(faxpagelist) $wn.pl.b.b
+    listbox $w(faxpagelist) -width 19 -height 8 -font $l(f1) -fg blue \
+            -yscrollcommand "$wn.pl.b.s set"
+    pack $wn.pl.b.b -side left
+    scrollbar $wn.pl.b.s -orient vertical -command "$w(faxpagelist) yview"
+    pack $wn.pl.b.s -side left -fill y
+    frame $wn.pl.b.f
+    pack $wn.pl.b.f -side right
+    bind $w(faxpagelist) <Double-Button-1> {
+        if {[$w(faxpagelist) curselection] != {}} {
+            set page $fax([$w(faxpagelist) curselection])
+            exec sh -c "$fax(viewer) $c(tkscandir)/$page" &
+        }
+    }
+    button $wn.pl.b.f.1 -text Attach -width 5 -pady 2 -command {
+        attachWindow
+    }
+    button $wn.pl.b.f.2 -text Detach -width 5 -pady 2 -command {
+        if {[set t [$w(faxpagelist) curselection]] != {}} {
+            for {set i $t} {$i < [expr $fax(c)-1]} {incr i} {
+                set fax($i) $fax([expr $i+1])
+            }
+            incr fax(c) -1
+            update_faxpagelist
+            if {$t < $fax(c)} { $w(faxpagelist) selection set $t
+                       } else { $w(faxpagelist) selection set [expr $t-1] }
+        }
+    }
+    button $wn.pl.b.f.3 -text Up     -width 5 -pady 2 -command {
+        if {[set t [$w(faxpagelist) curselection]] != {} && $t > 0} {
+            set u [expr $t-1]
+            set tmp $fax($u)
+            set fax($u) $fax($t)
+            set fax($t) $tmp
+            update_faxpagelist
+            $w(faxpagelist) selection set $u
+        }
+    }
+    button $wn.pl.b.f.4 -text Down   -width 5 -pady 2 -command {
+        if {[set t [$w(faxpagelist) curselection]] != {}
+            && $t < [expr $fax(c)-1]} {
+            set u [expr $t+1]
+            set tmp $fax($u)
+            set fax($u) $fax($t)
+            set fax($t) $tmp
+            update_faxpagelist
+            $w(faxpagelist) selection set $u
+        }
+    }
+    button $wn.pl.b.f.5 -text View   -width 5 -pady 2 -command {
+        if $fax(c) {
+            for {set pages ""; set i 0} {$i < $fax(c)} {incr i} {
+                append pages " $c(tkscandir)/$fax($i)"
+            }
+            exec sh -c "$fax(viewer) $pages" &
+        }
+    }
+    pack $wn.pl.b.f.1 $wn.pl.b.f.2 $wn.pl.b.f.3 $wn.pl.b.f.4 \
+         $wn.pl.b.f.5 -side top
+
+    frame $wn.b
+    button $wn.b.1 -text "SEND FAX" -width 12 -command sendFax
+    pack $wn.b.1 -side left -expand yes -fill x
+
+    pack $wn.fr $wn.pl $wn.b -side top -expand yes -fill x
+
+    update_faxpagelist
+    setquickmode Fax
+    setquickpaper A4
+}
+
+proc make_Fax { prefix i } { global fax s
+    set tag $prefix-$i
+    pnmtofax $tag
+    stat_text "Scanning $s(curscan) / $s(nrect) ... $tag.fax"
+    set fax($fax(c)) "$tag.fax"
+    incr fax(c)
+    update_faxpagelist
+    update
+}
+
+#
+# Efax dependent procedures
+
+proc pnmtofax { fn } { global c
+    set if "$c(tkscandir)/$fn.pnm"
+    set of "$c(tkscandir)/$fn.fax"
+    exec sh -c "efix -n $of $if ; rm -f $if" &
+}
+
+proc sendFax {} { global fax c
+    if {$fax(c) <= 0} { stat_text "sendfax: Nothing to send" ; return }
+    if {$c(faxnumber) == {}} { stat_text "sendfax: Empty Fax Number" ; return }
+    for {set pages "" ; set i 0} {$i < $fax(c)} {incr i} {
+        append pages " $c(tkscandir)/$fax($i)"
+    }
+    exec sh -c "fax send $fax(number) $pages" &
+}
+
+#
+# Subroutines
+
+proc update_faxpagelist {} { global fax w
+    $w(faxpagelist) delete 0 end
+    for {set i 0} {$i < $fax(c)} {incr i} {$w(faxpagelist) insert end $fax($i)}
+}
+
+proc faxnumberWindow {} { global fax l w
+    if [winfo exists .pbook] {return}
+    toplevel .pbook
+    wm title .pbook "TkScan: FaxNumberList"
+    frame .pbook.1
+    label .pbook.1.l -text "Fax Number List"
+    pack  .pbook.1.l -side left
+    frame .pbook.l
+    set w(faxnumberlist) .pbook.l.b
+    listbox $w(faxnumberlist) -yscroll ".pbook.l.s set" \
+            -width 40 -height 8 -relief sunken -font $l(f1)
+    scrollbar .pbook.l.s -command "$w(faxnumberlist) yview"
+    pack $w(faxnumberlist) -side left -fill both -expand yes
+    pack .pbook.l.s -side right -fill y
+    frame .pbook.b -bd 1 -relief ridge
+    bind $w(faxnumberlist) <Double-Button-1> select_faxnumber
+    button .pbook.b.1 -text Close  -width 6 -pady 0 -command {
+        save_faxnumberlist
+        destroy .pbook
+    }
+    button .pbook.b.2 -text Select -width 6 -pady 0 -command select_faxnumber
+    button .pbook.b.3 -text New    -width 6 -pady 0 -command {
+        set fax(tmprecipient) ""
+        set fax(tmpnumber) ""
+        set fax(tmpinsert) end
+        focus .pbook.i.1.e
+    }
+    button .pbook.b.4 -text Edit   -width 6 -pady 0 -command {
+        if {[set i [$w(faxnumberlist) curselection]] != {}} {
+           set line [$w(faxnumberlist) get $i]
+           set x [string last : $line]
+           set fax(tmprecipient) [string range $line 0 [expr $x-2]]
+           set fax(tmpnumber) [string range $line [expr $x+2] end]
+           set fax(tmpinsert) $i
+           focus .pbook.i.1.e
+        }
+    }
+    button .pbook.b.5 -text Remove -width 6 -pady 0 -command {
+        if {[set i [$w(faxnumberlist) curselection]] != {}} {
+            $w(faxnumberlist) delete $i
+        }
+    }
+    pack .pbook.b.1 .pbook.b.2 .pbook.b.3 .pbook.b.4 .pbook.b.5 -side left
+    frame .pbook.i -bd 1 -relief ridge
+    frame .pbook.i.1
+    frame .pbook.i.2
+    pack  .pbook.i.1 .pbook.i.2 -side top -fill x
+    label .pbook.i.1.l -text Name -anchor e -width 12
+    label .pbook.i.2.l -text "Fax Number" -anchor e -width 12
+    entry .pbook.i.1.e -textvariable fax(tmprecipient) -width 25 \
+                       -font $l(f1) -fg $l(c1)
+    entry .pbook.i.2.e -textvariable fax(tmpnumber) -width 25 \
+                       -font $l(f1) -fg $l(c1)
+    button .pbook.i.1.b -text "Clear" -width 6 -pady 0 -command {
+        set fax(tmprecipient) ""
+        set fax(tmpnumber) ""
+    }
+    button .pbook.i.2.b -text "Add" -width 6 -pady 0 -command {
+        if {$fax(tmpnumber) != {}} {
+            if ![string match end $fax(tmpinsert)] {
+                $w(faxnumberlist) delete $fax(tmpinsert)
+            }
+            $w(faxnumberlist) insert $fax(tmpinsert) \
+                         "$fax(tmprecipient) : $fax(tmpnumber)"
+        }
+    }
+    bind .pbook.i.1.e <KeyPress-Return> {focus .pbook.i.2.e}
+    bind .pbook.i.2.e <KeyPress-Return> {
+        if ![string match end $fax(tmpinsert)] {
+            $w(faxnumberlist) delete $fax(tmpinsert)
+        }
+        $w(faxnumberlist) insert $fax(tmpinsert) \
+                         "$fax(tmprecipient) : $fax(tmpnumber)"
+        focus .pbook.i.1.e
+    }
+    pack .pbook.i.1.l .pbook.i.1.e .pbook.i.1.b -side left
+    pack .pbook.i.2.l .pbook.i.2.e .pbook.i.2.b -side left
+
+    pack .pbook.1 .pbook.i .pbook.l .pbook.b -side top -fill x
+
+    set fax(tmprecipient) ""
+    set fax(tmpnumber) ""
+    set fax(tmpinsert) end
+    read_faxnumberlist
+}
+
+proc select_faxnumber {} { global fax w
+    if {[set s [$w(faxnumberlist) curselection]] != {}} {
+        set line [$w(faxnumberlist) get $s]
+        set x [string last : $line]
+        set fax(number) [string range $line [expr $x+2] end]
+        set fax(recipient) [string range $line 0 [expr $x-2]]
+    }
+}
+
+proc read_faxnumberlist {} { global fax w
+    if ![file exists $fax(numberlistfile)] {return}
+    set file [open $fax(numberlistfile) r]
+    while {[set i [gets $file]]!={}} { $w(faxnumberlist) insert end $i }
+    close $file
+}
+
+proc save_faxnumberlist {} { global fax w
+    set file [open $fax(numberlistfile) w]
+    for {set i 0} {$i < [$w(faxnumberlist) size]} {incr i} {
+        puts $file [$w(faxnumberlist) get $i]
+    }
+    close $file
+}
+
+proc attachWindow {} { global fax c s w
+    stat_text "Attach: Not implemented yet."
+}
+
+#---------------------------------------------------------------
+# OCR
+#----------------------------------------------------------------
+
+#
+# Configurations
+
+#
+# window_OCR and make_OCR
+
+proc window_OCR { wn } { global c w l
+    label $wn.ti -text "TkScan OCR Manager" -width 24 -pady 4 -relief ridge
+    canvas $wn.sep -width 0 -height 5 -relief flat
+    pack  $wn.ti $wn.sep -side top
+
+    frame $wn.ex -bd 1 -relief groove
+    label $wn.ex.l -width 32  \
+                   -text "
+OCR is not implemented yet
+in this version.
+"
+    pack  $wn.ex.l -side left
+
+    pack $wn.ex -side top -expand yes -fill x
+
+    setquickmode OCR
+}
+
+proc make_OCR { prefix i } { global s c w
+}
+
+#----------------------------------------------------------------
+# StartUp
+#----------------------------------------------------------------
+
+eval destroy [winfo child .]
+wm title . "TkScan"
+
+set s(unit)	mm
+set c(outputto)	ImageEditor
+set s(premodecurrent) 0
+# The user configuration file, if exists, overwrites the above assignments.
+if [file exists $c(userconf)] {source $c(userconf)}
+
+# Initialization of some variables
+set s(nrect)	0
+set s(runscan)	0
+set s(curscan)	0
+set s(stop)	0
+
+# Launch main window
+mainWindow
+previewcanvas
+image create photo preview -data {}
+set ip [expr $s(o)-1]
+$w(prev) create image $ip $ip -image preview -anchor nw
+set s(rect0) [$w(prev) create rectangle 0 0 0 0 -width 1 -outline $l(c2)]
+settop $s(o) $s(o)
+setbottom $s(maxpwidth) $s(maxpheight)
+setunit $s(unit)
+setmode $s(mode)
+if [regexp "ImagEeditor|File|Printer|Fax|OCR" [lindex $argv [expr $argc-1]]] {
+    set c(outputto) [lindex $argv [expr $argc-1]]
+}
+setoutputto $c(outputto)
+stat_text "TkScan v$c(version)"
+
+# End of tkscan

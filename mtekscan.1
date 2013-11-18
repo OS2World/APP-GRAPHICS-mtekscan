@@ -1,0 +1,277 @@
+.TH mtekscan 1 "13 Apr 97" "ffwd" "mtekscan manual"
+.IX mtekscan
+.SH NAME
+mtekscan \- driver for MicroTek SCSI scanners
+.SH SYNOPSIS
+.B mtekscan
+.RB [options]
+...
+
+.SH DESCRIPTION
+.I mtekscan
+is a driver that allows the use of MicroTek SCSI scanners with Linux.
+It is a command line utility that scans an image and writes the data
+to stdout or to a specified file.
+Originally developed for use with the MicroTek ScanMaker E6, it is
+known to work with other MicoTek SCSI scanners as well. So far, it has
+been successfully tested with a ScanMaker II, ScanMaker III, ScanMaker E3,
+ScanMaker 35t+, and ScanMaker E6, as well as with an Adara ImageStar I,
+Genius ColorPage-SP2 and a Primax DeskScan Color.
+
+.SH OPTIONS
+All options and arguments have to be separated by spaces; combining
+options like '-cpVt' is not allowed. If mutually exclusive options
+are specified on the same command line (like '-c -g') the last option
+overrides previous ones (unless explicitly stated otherwise, as for the
+.B -T
+and
+.B -G
+options, see below).
+Note that some of the options might not be available, depending on the
+scanner model used.
+
+.TP
+.B -o <file>
+If this is specified,
+.I mtekscan
+writes it's output to
+.B <file>
+, instead of stdout.
+
+.TP
+.B -f <x1> <y1> <x2> <y2>
+Sets the scanning frame to the rectangle defined by the upper left 
+corner
+.B <x1>,<y1>
+and the lower right corner
+.B <x2>,<y2>.
+The coordinates are measured in inch; the origin is at the top left 
+corner of the scanning area.
+
+.TP
+.B -r <resolution>
+Sets the scanning resolution (in dpi). As the MicroTek scanners only
+accept resolution settings in 1% or 5% steps of the maximum, the
+closest possible value is selected.
+
+.TP
+.B -b
+Selects line art (black and white) scanning.
+
+.TP
+.B -a
+Selects halftone scanning. The document is dithered using a halftoning
+pattern that can be selected with the -H option.
+
+.TP
+.B -g
+Selects grayscale scanning.
+
+.TP
+.B -c
+Selects color scanning.
+
+.TP
+.B -s <n>
+Sets the shadow adjustment value (black level) to
+.B <n>,
+where
+.B <n>
+is a decimal value in the range of 0..255. All pixel values less than or
+equal to this value are set to 0, and the remaining values are mapped
+into the range of 0 through 255.
+
+This option only works in multi-bit scanning modes (color or grayscale).
+The default value is 0.
+
+.TP
+.B -l <n>
+Sets the highlight adjustment value (white level) to
+.B <n>,
+where
+.B <n>
+is a decimal value in the range of 0..255. All pixel values greater than or
+equal to this value are set to 255, and the remaining values are mapped
+into the range of 0 through 255.
+
+This option only works in multi-bit scanning modes (color or grayscale).
+The default value is 255.
+
+.TP
+.B -m <n>
+Sets the midtone adjustment value to
+.B <n>,
+where
+.B <n>
+is a decimal value in the range of 0..255. All pixel values larger than 
+or equal to
+.B <n>
+are mapped into the range of 128 through 255, and all values less than
+.B <n>
+are mapped into the range of 0 through 127.
+
+This option only works in multi-bit scanning modes (color or grayscale).
+The default value is 128.
+
+.TP
+.B -d <n> [ <n> <n> ]
+Selects a digital brightness adjustment value of
+.B <n>,
+where
+.B <n>
+is a
+decimal value in the range of -100..100. If just one value is specified
+after this option, it determines the overall brightness. If three values
+are specified, they determine the red, green, and blue channel brightness
+adjustment individually.
+
+The default value is 0.
+
+.TP
+.B -e <n>
+Sets the exposure time adjustment (analog brightness adjustment) to
+.B <n>,
+where
+.B <n>
+is a decimal value usually in the range of -18..21 (some scanner models
+may accept higher values). Note that this value must be a multiple of 3,
+otherwise the closest possible value is selected.
+
+The default value is 0.
+
+.TP
+.B -k <n>
+Sets the contrast adjustment to
+.B <n>,
+where
+.B <n>
+is a decimal value usually in the range of -42..49 (some scanner models 
+may accept higher values). Note that this value must be a multiple of 7,
+otherwise the closest possible value is selected.
+
+The default value is 0.
+
+.TP
+.B -G <n> [ <n> <n> ]
+Sets the gamma correction to
+.B <n>.
+Specifying just one value after the
+.B -G
+selects an overall gamma correction value; if three values are specified
+they select red, green and blue channel gamma individually.
+
+The default value is 1.0 for all three channels.
+
+.TP
+.B -T <file>
+Loads the gamma correction table(s) from
+.B <file>.
+If this is specified, it overrides any gamma settings specified with
+the
+.B -G
+option, even if the
+.B -T
+option is specified before the
+.B -G
+on the command line.
+
+The default is not to load correction tables from a file.
+
+.TP
+.B -t
+Selects transparency scanning if a transparency illuminator is installed.
+
+.TP
+.B -n
+Selects negative scanning (reverse colors).
+
+.TP
+.B -H <n>
+Selects the built-in halftoning pattern
+.B <n>,
+where
+.B <n>
+is a decimal value in the range of 0..11. The halftoning pattern defines
+how the image is dithered when scanning halftone images (option -a).
+
+.TP
+.B -p
+Enables prescan mode, resulting in faster but less accurate scans.
+
+.TP
+.B -v <n>
+Sets the scanning velocity to
+.B <n>,
+where
+.B <n>
+is a decimal value in the range of 1..7 (higher values resulting in
+longer scan times). Setting a higher value can result in better quality
+if segment scanning is necessary (see option -B below).
+
+The default value is 1 (fastest).
+
+.TP
+.B -B
+Disables backtracking between scanning segments. If the transfer buffer
+of the generic SCSI driver is too small, the scan process will be divided
+into several steps, or segments. Usually, the scan head will move a bit
+backwards before beginning with a new segment. This can be disabled by
+specifying this switch, resulting in faster but less accurate scans.
+
+.TP
+.B -C
+Disables the recalibration at the start of a scan. This results in much
+shorter scanning times but less quality.
+
+Note that specifying this option causes a SCSI bus lock-up if the scanner
+did not calibrate itself at least once (e.g. if the scanner was just
+switched on). At least one scan must be made with calibration enabled
+before this option can be used.
+
+.TP
+.B -P
+Same as '-p -C' (see above).
+
+.TP
+.B -V
+Verbose mode. Scanner settings and progress information is written to stderr.
+
+.TP
+.B -i
+Shows options supported by the scanner in short format. The first values
+are the maximum document size and resolution, and the number of contrast
+and exposure time values accepted, followed by a list of option letters
+supported by the scanner. This information is intended for use with
+a graphical scanning frontend.
+
+.TP
+.B -I
+Shows internal scanner data in long, human-readable format.
+
+.TP
+.B -S
+Perform a self-test of the scanner hardware and exit.
+
+.TP
+.B -h
+Displays a list of command line options accepted by
+.I mtekscan.
+
+.SH BUGS
+.I mtekscan
+can cause kernel panics, system crashes, SCSI bus lock-ups and various
+other nasty things. Really.
+Selecting a negative brightness value with the -d option produces strange
+(and definitely wrong) results, at least on a ScanMaker E6. Specifying
+different brightness adjustment values for the red, green, and blue
+channels does not have the desired effect but just affects the overall
+brightness (again, at least on an E6). And probably there's a thousand
+more.
+
+.SH AUTHOR
+.I mtekscan
+is Copyright (C) 1996, 1997 by Jan Schoenepauck, <schoenep@uni-wuppertal.de>. 
+Some Parts of the program were taken from the muscan driver for Mustek
+scanners by Torsten Eichner <eichner@rhrk.uni-kl.de>.
+The code for the three-pass scanner support is heavily based on a patch
+by Warwick Allison <warwick@cs.uq.edu.au>.

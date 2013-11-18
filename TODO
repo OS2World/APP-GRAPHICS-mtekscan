@@ -1,0 +1,43 @@
+Things I plan to add/improve/fix in future releases:
+
+- Add support for multi-bit formats other than 8 bpp (4/10/12 bpp)
+
+- Allow specification of scanning frame and paper length in units other
+  than inch (cm, mm, point, pixel)
+
+- Support pixel as internal frame size setting unit (scanning frame
+  specification is not very accurate now, especially if FIX_FRAMESIZE must
+  be set to 1)
+
+- Add support for automatic document feeder (ADF)
+
+- Support downloading of user defined halftone patterns
+
+~ Allow different contrast/exposure/shadow/midtone/highlight/brightness
+  settings for R, G and B channels.
+
+- Negative values for digital brightness adjustment produce very strange
+  results.
+
+- Allow specifying an option file containing commandline switches.
+
+- Fix SCSI bus lockup when scanning without prior calibration 
+  (if not possible, add a switch to perform a "dummy scan", i.e. a START SCAN 
+  immediately followed by a STOP SCAN, to force a calibration).
+  Maybe create a file in /tmp that indicates that a calibration was done?
+
+- Add autodetection of scanner device (through /proc/scsi/scsi, perhaps)
+
+~ Try to fix the "-n" switch for negative scanning (does not work
+  on a 35t). (Got a workaround now with the INVERT_USING_GAMMA option).
+
+- Check return value of lut_download().
+
+- Blue values are not correct on an E6.
+
+- Add software inter-/extrapolation, esp. for expanded resolution scans (to
+  take care of vertically streched images in this mode.
+
+- Write some simple tool to create gamma table files; maybe even some
+  calibration tool for use with the test image supplied with some scanners
+  (in the far, far future...).
